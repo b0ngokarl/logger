@@ -1,0 +1,10 @@
+[Unit]
+Description=Meshtastic Telemetry Logger (timer)
+
+[Timer]
+OnBootSec=30sec
+OnUnitActiveSec=1min
+Unit=meshtastic-telemetry.service
+
+[Install]
+WantedBy=timers.target

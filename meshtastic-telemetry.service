@@ -1,0 +1,15 @@
+[Unit]
+Description=Meshtastic Telemetry Logger
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/meshtastic/meshtastic_telemetry_logger.py --nodes '!exampleB' '!exampleA' '!exampleC' --interval 60 --output /var/log/meshtastic/telemetry.csv
+WorkingDirectory=/opt/meshtastic
+Restart=on-failure
+RestartSec=5s
+# For TCP to meshtasticd; comment the next line and add --serial /dev/ttyUSB0 to ExecStart for serial
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

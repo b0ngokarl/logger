@@ -1,0 +1,28 @@
+*.csv
+# Keep example CSVs in examples/ directory
+!/examples/
+!/examples/*.csv
+
+# Virtualenv
+.venv/
+
+# Python cache
+__pycache__/
+
+# VS Code
+.vscode/
+
+# Do not commit generated HTML or plot images
+*.html
+/plots/
+*.png
+*.jpg
+*.jpeg
+*.svg
+
+# Local environment files (do NOT commit secrets)
+.env
+.env.local
+
+# Keep an example env file in the repo
+!.env.example
