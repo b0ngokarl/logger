@@ -195,23 +195,23 @@ def main():
                 else:
                     print(f"[MISS] TRC {node}", file=sys.stderr)
 
-        if args.once or _stop:
-            # After a single run, optionally generate plots
-            if not args.no_plot:
-                try:
-                    # Prefer using the same virtualenv python if available
-                    py = sys.executable
-                    plot_script = Path(__file__).parent / "plot_meshtastic.py"
-                    cmd = [py, str(plot_script), "--telemetry", str(tele_csv), "--traceroute", str(trace_csv), "--outdir", str(plot_outdir)]
-                    print(f"[INFO] Running plot script: {' '.join(cmd)}")
-                    subprocess.run(cmd, check=True)
-                    print(f"[INFO] Plots written to {plot_outdir}")
-                except subprocess.CalledProcessError as e:
-                    print(f"[WARN] Plot script failed: {e}", file=sys.stderr)
-                except Exception as e:
-                    print(f"[WARN] Unexpected error running plot script: {e}", file=sys.stderr)
-            if args.once:
-                break
+        # After each cycle, optionally generate plots
+        if not args.no_plot:
+            try:
+                # Prefer using the same virtualenv python if available
+                py = sys.executable
+                plot_script = Path(__file__).parent / "plot_meshtastic.py"
+                cmd = [py, str(plot_script), "--telemetry", str(tele_csv), "--traceroute", str(trace_csv), "--outdir", str(plot_outdir)]
+                print(f"[INFO] Running plot script: {' '.join(cmd)}")
+                subprocess.run(cmd, check=True)
+                print(f"[INFO] Plots written to {plot_outdir}")
+            except subprocess.CalledProcessError as e:
+                print(f"[WARN] Plot script failed: {e}", file=sys.stderr)
+            except Exception as e:
+                print(f"[WARN] Unexpected error running plot script: {e}", file=sys.stderr)
+
+        if args.once:
+            break
         # sleep until next cycle
         for _ in range(int(args.interval*10)):
             if _stop: break
