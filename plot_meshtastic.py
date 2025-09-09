@@ -97,6 +97,21 @@ def _fmt_ts(ts):
         return str(ts)
 
 def diagnostics(df_tele, df_trace, outdir: Path, sources_tele, sources_trace):
+    # Calculate estimated battery runtime for each node
+    est_runtimes = {}
+    for node, part in df_tele.groupby("node"):
+        batt_data = part["battery_pct"].dropna()
+        if len(batt_data) > 1:
+            ts_seconds = part["timestamp"].astype(int) / 10**9
+            x_clean = ts_seconds[part["battery_pct"].notna()]
+            y_clean = batt_data
+            slope, intercept = np.polyfit(x_clean, y_clean, 1)
+            if slope < 0:
+                current_batt = y_clean.iloc[-1]
+                time_to_zero_sec = current_batt / abs(slope)
+                time_to_zero_days = time_to_zero_sec / 3600 / 24
+                est_runtimes[node] = f"{time_to_zero_days:.1f} days"
+
     # Produce both plain-text and a simple responsive HTML diagnostics page.
     lines = []
     lines.append("Diagnostics (merged)")
@@ -150,13 +165,14 @@ def diagnostics(df_tele, df_trace, outdir: Path, sources_tele, sources_trace):
     if len(df_tele):
         html_lines.append("<h2>Telemetry summary</h2>")
         html_lines.append("<table>")
-        html_lines.append("<tr><th>Node</th><th>Last seen</th><th>Rows</th><th>Latest battery</th><th>Latest voltage</th></tr>")
+        html_lines.append("<tr><th>Node</th><th>Last seen</th><th>Rows</th><th>Latest battery</th><th>Latest voltage</th><th>Est. runtime</th></tr>")
         for node, part in df_tele.groupby("node"):
             last = part["timestamp"].max()
             rows = len(part)
             latest_batt = part.sort_values("timestamp").iloc[-1]["battery_pct"] if rows else ""
             latest_volt = part.sort_values("timestamp").iloc[-1]["voltage_v"] if rows else ""
-            html_lines.append(f"<tr><td>{node}</td><td>{_fmt_ts(last)}</td><td>{rows}</td><td>{latest_batt}</td><td>{latest_volt}</td></tr>")
+            latest_runtime = est_runtimes.get(node, "")
+            html_lines.append(f"<tr><td>{node}</td><td>{_fmt_ts(last)}</td><td>{rows}</td><td>{latest_batt}</td><td>{latest_volt}</td><td>{latest_runtime}</td></tr>")
         html_lines.append("</table>")
 
     if len(df_trace):
@@ -201,12 +217,36 @@ def plot_per_node_dashboards(df: pd.DataFrame, outdir: Path):
             plt.xlabel("Time")
             plt.ylabel(ylabel)
             plt.title(f"{node} - {ylabel}")
+            if col == "battery_pct" and len(y.dropna()) > 1:
+                x_seconds = x.astype(int) / 10**9
+                y_clean = y.dropna()
+                x_clean = x_seconds[y.notna()]
+                slope, intercept = np.polyfit(x_clean, y_clean, 1)
+                if slope < 0:
+                    current_batt = y_clean.iloc[-1]
+                    time_to_zero_sec = current_batt / abs(slope)
+                    time_to_zero_days = time_to_zero_sec / 3600 / 24
+                    plt.text(0.05, 0.95, f'Est. runtime: {time_to_zero_days:.1f} days', transform=plt.gca().transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
             plt.tight_layout()
             fname = node_dir / f"{slug}.png"
             plt.savefig(fname)
             plt.close()
             imgs.append(fname.name)
         if imgs:
+            # Calculate estimated battery runtime
+            est_runtime = ""
+            batt_data = part["battery_pct"].dropna()
+            if len(batt_data) > 1:
+                ts_seconds = part["timestamp"].astype(int) / 10**9
+                x_clean = ts_seconds[part["battery_pct"].notna()]
+                y_clean = batt_data
+                slope, intercept = np.polyfit(x_clean, y_clean, 1)
+                if slope < 0:
+                    current_batt = y_clean.iloc[-1]
+                    time_to_zero_sec = current_batt / abs(slope)
+                    time_to_zero_days = time_to_zero_sec / 3600 / 24
+                    est_runtime = f" &nbsp;|&nbsp; Est. runtime: {time_to_zero_days:.1f} days"
+
             # Build a slightly nicer responsive HTML per-node page with a small summary
             latest = part.sort_values("timestamp").iloc[-1]
             last_seen = _fmt_ts(latest["timestamp"])
@@ -219,7 +259,7 @@ def plot_per_node_dashboards(df: pd.DataFrame, outdir: Path):
                 f"<title>Dashboard {node}</title>",
                 "<style>body{font-family:Arial,Helvetica,sans-serif;margin:12px}img{max-width:100%;height:auto;border:1px solid #ddd;padding:4px;background:#fff} .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}</style>",
                 f"<h1>Node {node}</h1>",
-                f"<p>Last seen: {last_seen} &nbsp;|&nbsp; Battery: {latest_batt} &nbsp;|&nbsp; Voltage: {latest_volt}</p>",
+                f"<p>Last seen: {last_seen} &nbsp;|&nbsp; Battery: {latest_batt} &nbsp;|&nbsp; Voltage: {latest_volt}{est_runtime}</p>",
                 "<div class='grid'>"
             ]
             for img in imgs:
