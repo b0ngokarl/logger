@@ -1,4 +1,4 @@
-meshtastic-telemetry-logger v3
+meshtastic-telemetry-logger
 
 This repository contains a small Meshtastic telemetry & traceroute logger and plotter.
 
@@ -18,7 +18,7 @@ Quick start
 
    python meshtastic_telemetry_logger.py --nodes !exampleA !exampleB --once
 
-   This will append rows to `telemetry_log.csv` and `traceroute_log.csv`.
+   This will append rows to `telemetry.csv` and `traceroute.csv`.
 
 4. By default the logger will automatically run `plot_meshtastic.py` after each `--once` run and write output into the `plots/` directory. Use `--no-plot` to disable automatic plotting.
 

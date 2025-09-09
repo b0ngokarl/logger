@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """
-Meshtastic Telemetry + Traceroute Logger (v3)
-
-- Telemetry: via CLI (compat), parses human-readable output robustly
-- Traceroute: via CLI, parses forward/back paths with per-hop dB values
-- Appends to two CSVs: telemetry_log.csv and traceroute_log.csv
-- Works with serial (--serial /dev/ttyACM0 or /dev/ttyUSB0)
-- Retries, ISO timestamps, fsync
+Meshtastic telemetry & traceroute logger
+- Collects telemetry (battery, voltage, channel util, air tx, uptime) and traceroute data from specified nodes
+- Appends to CSV files with timestamps
+- Optionally auto-plots after each run using plot_meshtastic.py
+- Supports single run (--once) or continuous (--interval)
+- Interruptible with SIGINT/SIGTERM
 """
 import argparse
 import csv
@@ -98,9 +97,11 @@ def collect_traceroute_cli(dest: str, serial_dev: Optional[str]=None, timeout: i
 
     for line in lines:
         if RE_FWD_HDR.search(line):
-            section = "fwd"; continue
+            section = "fwd"
+            continue
         if RE_BWD_HDR.search(line):
-            section = "bwd"; continue
+            section = "bwd"
+            continue
         m = RE_HOP.search(line)
         if m:
             a, b, val = m.group(1), m.group(2), float(m.group(3))
@@ -209,7 +210,8 @@ def main():
                     print(f"[WARN] Plot script failed: {e}", file=sys.stderr)
                 except Exception as e:
                     print(f"[WARN] Unexpected error running plot script: {e}", file=sys.stderr)
-            break
+            if args.once:
+                break
         # sleep until next cycle
         for _ in range(int(args.interval*10)):
             if _stop: break

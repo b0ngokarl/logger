@@ -12,12 +12,8 @@ __pycache__/
 # VS Code
 .vscode/
 
-# Do not commit generated HTML or plot images
-*.html
-/plots/
-*.png
-*.jpg
-*.jpeg
+# Environment variables
+.env
 *.svg
 
 # Local environment files (do NOT commit secrets)

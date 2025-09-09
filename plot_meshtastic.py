@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Plot Meshtastic telemetry & traceroute CSVs (v3)
+Plot Meshtastic telemetry & traceroute CSVs
 - Merges multiple CSV inputs (e.g., mix of --once and --interval runs)
 - De-duplicates rows, sorts by time
 - Per-node dashboards, traceroute time-series, topology snapshots
@@ -304,7 +304,8 @@ def plot_topology_snapshots(df: pd.DataFrame, outdir: Path):
             ax.scatter([x],[y])
             ax.text(x, y, n, ha="center", va="bottom", fontsize=8)
         for a,b,db in edges:
-            x1,y1 = pos[a]; x2,y2 = pos[b]
+            x1, y1 = pos[a]
+            x2, y2 = pos[b]
             ax.plot([x1,x2],[y1,y2])
             mx, my = (x1+x2)/2.0, (y1+y2)/2.0
             ax.text(mx, my, f"{db:.2f} dB", ha="center", va="center", fontsize=8)
