@@ -13,7 +13,7 @@ import datetime as dt
 import os
 import re
 import signal
-import subprocess
+import subprocess  # Ensure all subprocess calls use shell=False and avoid untrusted input
 import sys
 import time
 from pathlib import Path
@@ -52,8 +52,15 @@ def run_cli(cmd: List[str], timeout: int=30) -> Tuple[bool, str]:
         return False, "[TIMEOUT]"
 
 def collect_telemetry_cli(dest: str, serial_dev: Optional[str]=None, timeout: int=20) -> Optional[dict]:
+    # Ensure dest and serial_dev are validated to avoid injection
+    if not re.match(r"^![0-9a-zA-Z]+$", dest):
+        print(f"[ERROR] Invalid node ID: {dest}", file=sys.stderr)
+        return None
     cmd = ["meshtastic", "--request-telemetry", "--dest", dest]
     if serial_dev:
+        if not re.match(r"^/dev/tty[A-Z]+[0-9]+$", serial_dev):
+            print(f"[ERROR] Invalid serial device: {serial_dev}", file=sys.stderr)
+            return None
         cmd += ["--port", serial_dev]
     ok, out = run_cli(cmd, timeout=timeout)
     if not ok:
@@ -76,9 +83,9 @@ def collect_telemetry_cli(dest: str, serial_dev: Optional[str]=None, timeout: in
     }
 
 # ---- Traceroute CLI parsing ----
-RE_HOP = re.compile(r"(![0-9a-fA-F]+)\s*-->\s*(![0-9a-fA-F]+)\s*\(([+-]?[0-9.]+)\s*dB\)")
-RE_FWD_HDR = re.compile(r"Route traced towards destination", re.IGNORECASE)
+RE_FWD_HDR = re.compile(r"Route traced to", re.IGNORECASE)
 RE_BWD_HDR = re.compile(r"Route traced back to us", re.IGNORECASE)
+RE_HOP = re.compile(r"([!0-9a-zA-Z]+)\s*->\s*([!0-9a-zA-Z]+)\s*\(([0-9.-]+)\s*dB\)")
 
 def collect_traceroute_cli(dest: str, serial_dev: Optional[str]=None, timeout: int=30) -> Optional[Dict[str, List[Tuple[str,str,float]]]]:
     cmd = ["meshtastic", "--traceroute", dest]
@@ -159,7 +166,8 @@ def main():
             attempt = 0
             while attempt <= args.retries:
                 tel = collect_telemetry_cli(dest=node, serial_dev=args.serial)
-                if tel: break
+                if tel:
+                    break
                 attempt += 1
                 if attempt <= args.retries:
                     time.sleep(0.8)
@@ -180,7 +188,8 @@ def main():
                 attempt = 0
                 while attempt <= args.retries:
                     tr = collect_traceroute_cli(dest=node, serial_dev=args.serial)
-                    if tr: break
+                    if tr:
+                        break
                     attempt += 1
                     if attempt <= args.retries:
                         time.sleep(0.8)
@@ -214,7 +223,8 @@ def main():
             break
         # sleep until next cycle
         for _ in range(int(args.interval*10)):
-            if _stop: break
+            if _stop:
+                break
             time.sleep(0.1)
         if _stop:
             break
