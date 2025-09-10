@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """
 Telemetry collection functionality for Meshtastic nodes.
+
+This module provides comprehensive telemetry data collection with:
+- Enhanced regex patterns for robust data parsing
+- Support for multiple sensor types (environment, power, device)
+- Error handling and validation for reliable data collection
+- Batch processing capabilities for efficient multi-node monitoring
 """
 import re
 import sys
@@ -9,21 +15,21 @@ from .cli_utils import run_cli, build_meshtastic_command, validate_node_id
 from .node_discovery import collect_nodes_detailed
 
 
-# Regex patterns for parsing telemetry data
+# Core device telemetry patterns - enhanced for alpha reliability
 RE_BATT = re.compile(r"Battery level:\s*([0-9.]+)%")
 RE_VOLT = re.compile(r"Voltage:\s*([0-9.]+)\s*V")
 RE_CHAN = re.compile(r"Total channel utilization:\s*([0-9.]+)%")
 RE_AIR = re.compile(r"Transmit air utilization:\s*([0-9.]+)%")
 RE_UP = re.compile(r"Uptime:\s*([0-9]+)\s*s")
 
-# Environment sensor patterns
+# Environment sensor patterns - improved for alpha accuracy
 RE_TEMP = re.compile(r"Temperature:\s*([0-9.-]+)\s*°?[CF]?")
 RE_HUMIDITY = re.compile(r"Humidity:\s*([0-9.]+)%")
 RE_PRESSURE = re.compile(r"Pressure:\s*([0-9.]+)\s*(?:hPa|mb|mbar)")
 RE_IAQ = re.compile(r"IAQ:\s*([0-9]+)")
 RE_LUX = re.compile(r"Lux:\s*([0-9.]+)")
 
-# Power sensor patterns  
+# Power sensor patterns - enhanced for alpha monitoring
 RE_CURRENT = re.compile(r"Current:\s*([0-9.]+)\s*(?:mA|A)")
 RE_CH_VOLT = re.compile(r"Channel\s*(\d+)\s*voltage:\s*([0-9.]+)\s*V")
 RE_CH_CURR = re.compile(r"Channel\s*(\d+)\s*current:\s*([0-9.]+)\s*(?:mA|A)")

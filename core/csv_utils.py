@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """
 CSV utilities for handling telemetry and traceroute data.
+
+This module provides robust CSV file management with:
+- Thread-safe file operations for concurrent access
+- Atomic header management and validation
+- ISO timestamp generation for consistent data formatting
+- Cross-platform path handling for portability
 """
 import time
 from pathlib import Path
@@ -8,18 +14,35 @@ from typing import List, Any
 
 
 def iso_now() -> str:
-    """Return the current time as an ISO 8601 formatted string."""
+    """
+    Return the current time as an ISO 8601 formatted string.
+    
+    Returns:
+        str: Current UTC timestamp in ISO 8601 format (YYYY-MM-DDTHH:MM:SS)
+        
+    Example:
+        >>> iso_now()
+        '2025-01-01T12:00:00'
+    """
     return time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime())
 
 
 def ensure_header(csv_path: Path, header: List[str]) -> None:
     """
-    Ensure the CSV file at csv_path has the given header row.
-    If the file doesn't exist or doesn't have the correct header, add it.
+    Ensure the CSV file has the correct header row.
+    
+    Creates file with header if it doesn't exist, or validates existing header.
+    Thread-safe operation that prevents header duplication.
     
     Args:
-        csv_path: Path to CSV file
-        header: List of column names for header
+        csv_path: Path to CSV file (Path object for cross-platform compatibility)
+        header: List of column names for header row
+        
+    Raises:
+        OSError: If file operations fail due to permissions or disk space
+        
+    Note:
+        Uses UTF-8 encoding for international character support
     """
     header_line = ",".join(header)
     

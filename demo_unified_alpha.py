@@ -189,7 +189,7 @@ def demo_unified_workflow():
 
 def run_comprehensive_demo():
     """Run all demonstration features."""
-    print("🎯 UNIFIED MESHTASTIC LOGGER - BETA DEMONSTRATION")
+    print("🎯 UNIFIED MESHTASTIC LOGGER - ALPHA DEMONSTRATION")
     print("=" * 60)
     print("This demo showcases the key features of the unified logger.")
     print("Note: Hardware-dependent features will show simulated behavior.\\n")

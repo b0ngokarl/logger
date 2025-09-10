@@ -1,12 +1,12 @@
 # Meshtastic Telemetry & Traceroute Logger
 
-A toolkit for collecting, logging, and visualizing telemetry and traceroute data from Meshtastic nodes.
+A comprehensive toolkit for collecting, logging, and visualizing telemetry and traceroute data from Meshtastic nodes with enhanced organization and maintainability.
 
-## ⚡ New Refactored Version Available!
+## ⚡ Alpha Version Available!
 
-This repository has been refactored for better maintainability and modularity. See [`REFACTORING_GUIDE.md`](REFACTORING_GUIDE.md) for migration details.
+This repository has been refactored to the alpha version with improved organization, enhanced code quality, and modernized structure. See [`REFACTORING_GUIDE.md`](REFACTORING_GUIDE.md) for migration details and [`ALPHA_COMPLETE.md`](ALPHA_COMPLETE.md) for alpha-specific enhancements.
 
-**Quick Start with Refactored Version:**
+**Quick Start with Alpha Version:**
 ```bash
 # Auto-discover and monitor all nodes
 python3 meshtastic_logger_refactored.py --all-nodes --once --plot
@@ -16,6 +16,10 @@ python3 meshtastic_logger_refactored.py --nodes !abc123 !def456 --once --plot
 
 # Discover nodes only
 python3 discover_nodes_refactored.py --detailed
+
+# Alpha demonstration and testing
+python3 demo_unified_alpha.py
+python3 test_unified_alpha.py
 ```
 
 ## Features
