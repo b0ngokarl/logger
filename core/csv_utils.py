@@ -21,17 +21,27 @@ def ensure_header(csv_path: Path, header: List[str]) -> None:
         csv_path: Path to CSV file
         header: List of column names for header
     """
+    header_line = ",".join(header)
+    
     if not csv_path.exists():
         with csv_path.open("w", encoding="utf-8") as f:
-            f.write(",".join(header) + "\n")
+            f.write(header_line + "\n")
         return
     
-    with csv_path.open("r+", encoding="utf-8") as f:
-        content = f.read()
-        header_line = ",".join(header)
-        if not content.startswith(header_line):
-            f.seek(0, 0)
-            f.write(header_line + "\n" + content)
+    # Read existing content
+    with csv_path.open("r", encoding="utf-8") as f:
+        lines = f.readlines()
+    
+    # Check if first line is the correct header
+    if not lines or lines[0].strip() != header_line:
+        # Write correct header and preserve existing data (skip old header if present)
+        with csv_path.open("w", encoding="utf-8") as f:
+            f.write(header_line + "\n")
+            # Skip first line if it looks like a header (contains column names)
+            start_idx = 1 if lines and any(col in lines[0] for col in header[:3]) else 0
+            for line in lines[start_idx:]:
+                if line.strip() and not line.startswith(header_line):
+                    f.write(line)
 
 
 def append_row(csv_path: Path, row: List[Any]) -> None:
@@ -54,7 +64,7 @@ def setup_telemetry_csv(csv_path: Path) -> None:
         csv_path: Path to telemetry CSV file
     """
     header = [
-        "timestamp", "node", "battery_pct", "voltage_v", 
+        "timestamp", "node_id", "battery_pct", "voltage_v",
         "channel_util_pct", "air_tx_pct", "uptime_s",
         # Environment sensors
         "temperature_c", "humidity_pct", "pressure_hpa", "iaq", "lux",
@@ -74,7 +84,7 @@ def setup_traceroute_csv(csv_path: Path) -> None:
         csv_path: Path to traceroute CSV file
     """
     header = [
-        "timestamp", "dest", "direction", "hop_index", 
-        "from", "to", "link_db"
+        "timestamp", "target_node", "direction", "hop",
+        "src", "dst", "db"
     ]
     ensure_header(csv_path, header)
