@@ -65,7 +65,7 @@ def collect_telemetry_cli(dest: str, serial_dev: Optional[str] = None, timeout: 
 
 def _collect_direct_telemetry(dest: str, serial_dev: Optional[str] = None, timeout: int = 30) -> Optional[Dict[str, float]]:
     """
-    Collect telemetry directly using meshtastic --telemetry command.
+    Collect telemetry directly using meshtastic --request-telemetry --dest command.
     
     Args:
         dest: Node ID to collect telemetry from
@@ -75,7 +75,7 @@ def _collect_direct_telemetry(dest: str, serial_dev: Optional[str] = None, timeo
     Returns:
         Dictionary of telemetry data or None if failed
     """
-    cmd = build_meshtastic_command(["--telemetry", dest], serial_dev)
+    cmd = build_meshtastic_command(["--request-telemetry", "--dest", dest], serial_dev)
     
     success, output = run_cli(cmd, timeout=timeout)
     if not success:

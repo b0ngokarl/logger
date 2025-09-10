@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from core.cli_utils import validate_node_id, validate_serial_device, build_meshtastic_command
 from core.csv_utils import iso_now, ensure_header, append_row
 from core.node_discovery import normalize_node_id
+from core.telemetry import _collect_direct_telemetry
 
 
 class TestCliUtils(unittest.TestCase):
@@ -20,11 +21,18 @@ class TestCliUtils(unittest.TestCase):
     
     def test_validate_node_id(self):
         """Test node ID validation."""
-        # Valid node IDs
+        # Valid node IDs - hex format
         self.assertTrue(validate_node_id("abc123"))
         self.assertTrue(validate_node_id("!abc123"))
         self.assertTrue(validate_node_id("ABC123"))
         self.assertTrue(validate_node_id("123abc"))
+        self.assertTrue(validate_node_id("ba4bf9d0"))
+        self.assertTrue(validate_node_id("!ba4bf9d0"))
+        
+        # Valid node IDs - decimal format
+        self.assertTrue(validate_node_id("1828779180"))
+        self.assertTrue(validate_node_id("!1828779180"))
+        self.assertTrue(validate_node_id("123456"))
         
         # Invalid node IDs
         self.assertFalse(validate_node_id(""))
@@ -107,6 +115,34 @@ class TestCsvUtils(unittest.TestCase):
             
         finally:
             csv_path.unlink(missing_ok=True)
+
+
+class TestTelemetry(unittest.TestCase):
+    """Test telemetry functions."""
+    
+    def test_telemetry_command_format(self):
+        """Test that telemetry uses correct --request-telemetry --dest format."""
+        from unittest.mock import patch, MagicMock
+        
+        # Mock the run_cli function to capture the command used
+        with patch('core.telemetry.run_cli') as mock_run_cli:
+            mock_run_cli.return_value = (True, "Battery level: 85%\nVoltage: 3.2V")
+            
+            # Test hex format node ID
+            _collect_direct_telemetry("!ba4bf9d0")
+            
+            # Verify the command format
+            called_command = mock_run_cli.call_args[0][0]
+            expected_command = ["meshtastic", "--request-telemetry", "--dest", "!ba4bf9d0"]
+            self.assertEqual(called_command, expected_command)
+            
+            # Test decimal format node ID
+            _collect_direct_telemetry("1828779180")
+            
+            # Verify the command format for decimal
+            called_command = mock_run_cli.call_args[0][0]
+            expected_command = ["meshtastic", "--request-telemetry", "--dest", "1828779180"]
+            self.assertEqual(called_command, expected_command)
 
 
 class TestNodeDiscovery(unittest.TestCase):
