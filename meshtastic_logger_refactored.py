@@ -190,6 +190,9 @@ class MeshtasticLogger:
             
             if self.args.regenerate_charts:
                 plot_cmd.append("--regenerate-charts")
+                
+            if self.args.preserve_history:
+                plot_cmd.append("--preserve-history")
             
             print("[INFO] Running plotting script...")
             subprocess.run(plot_cmd, check=True)
@@ -291,6 +294,7 @@ def parse_args():
     parser.add_argument("--no-trace", action="store_true", help="Disable traceroute collection")
     parser.add_argument("--plot", action="store_true", help="Generate plots after data collection")
     parser.add_argument("--regenerate-charts", action="store_true", help="Force regeneration of all charts")
+    parser.add_argument("--preserve-history", action="store_true", help="Create timestamped directories and preserve history")
     
     return parser.parse_args()
 
