@@ -17,7 +17,6 @@ import time
 import subprocess
 import re
 import json
-import importlib.util
 import pandas as pd
 
 # ---- Telemetry CLI parsing ----
@@ -27,18 +26,8 @@ RE_CHAN = re.compile(r"Total channel utilization:\s*([0-9.]+)%")
 RE_AIR  = re.compile(r"Transmit air utilization:\s*([0-9.]+)%")
 RE_UP   = re.compile(r"Uptime:\s*([0-9]+)\s*s")
 
-# Move run_cli to top so it's available for all functions
-def run_cli(cmd: List[str], timeout: int=30) -> Tuple[bool, str]:
-    # Security: enforce list command, no shell, limited timeout
-    if not isinstance(cmd, list) or not cmd:
-        return False, "[INVALID_CMD]"
-    try:
-        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True, timeout=timeout, shell=False)
-        return True, out
-    except subprocess.CalledProcessError as e:
-        return False, e.output
-    except subprocess.TimeoutExpired:
-        return False, "[TIMEOUT]"
+# Import from core modules to avoid duplication
+from core import run_cli, iso_now, ensure_header, append_row, discover_all_nodes
 
 # --- Regex patterns for parsing ---
 
@@ -48,29 +37,6 @@ RE_HOP = re.compile(r"^\s*\d+\s+(\S+)\s+(\S+)\s+([\d.]+)\s+ms")
 RE_FWD_HDR = re.compile(r"^traceroute to ")
 # Match backward traceroute section header: "traceroute from ..."
 RE_BWD_HDR = re.compile(r"^traceroute from ")
-
-# --- Utility functions ---
-
-def iso_now() -> str:
-    """Return the current time as an ISO 8601 formatted string."""
-    return time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime())
-
-def ensure_header(csv_path: Path, header: List[str]):
-    """Ensure the CSV file at csv_path has the given header row. If not, prepend the header."""
-    if not csv_path.exists():
-        with csv_path.open("w", encoding="utf-8") as f:
-            f.write(",".join(header) + "\n")
-        return
-    with csv_path.open("r+", encoding="utf-8") as f:
-        content = f.read()
-        if not content.startswith(",".join(header)):
-            f.seek(0, 0)
-            f.write(",".join(header) + "\n" + content)
-
-def append_row(csv_path: Path, row: List):
-    """Append a row to the CSV file at csv_path."""
-    with csv_path.open("a", encoding="utf-8") as f:
-        f.write(",".join(map(str, row)) + "\n")
 
 # --- Meshtastic telemetry and traceroute functions ---
 
@@ -531,29 +497,18 @@ def main():
     
     # Handle automatic node discovery if requested
     if args.all_nodes:
-        # Import discover_all_nodes module dynamically
-        discover_nodes_path = Path(__file__).parent / "discover_all_nodes.py"
-        if discover_nodes_path.exists():
-            try:
-                spec = importlib.util.spec_from_file_location("discover_all_nodes", discover_nodes_path)
-                if spec and spec.loader:
-                    discover_nodes_module = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(discover_nodes_module)
-                    
-                    # Discover all nodes
-                    print("[INFO] Discovering all nodes on the network...")
-                    discovered_nodes = discover_nodes_module.discover_all_nodes(args.serial)
-                    if discovered_nodes:
-                        print(f"[INFO] Discovered {len(discovered_nodes)} nodes: {', '.join(discovered_nodes)}")
-                        args.nodes = discovered_nodes
-                    else:
-                        print("[ERROR] No nodes discovered. Exiting.", file=sys.stderr)
-                        return 1
-            except Exception as e:
-                print(f"[ERROR] Failed to discover nodes: {e}", file=sys.stderr)
+        try:
+            # Discover all nodes
+            print("[INFO] Discovering all nodes on the network...")
+            discovered_nodes = discover_all_nodes(args.serial)
+            if discovered_nodes:
+                print(f"[INFO] Discovered {len(discovered_nodes)} nodes: {', '.join(discovered_nodes)}")
+                args.nodes = discovered_nodes
+            else:
+                print("[ERROR] No nodes discovered. Exiting.", file=sys.stderr)
                 return 1
-        else:
-            print(f"[ERROR] discover_all_nodes.py not found at {discover_nodes_path}", file=sys.stderr)
+        except Exception as e:
+            print(f"[ERROR] Failed to discover nodes: {e}", file=sys.stderr)
             return 1
     
     # Node tracking data structures
