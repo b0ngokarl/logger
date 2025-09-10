@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-Demo script for the Unified Meshtastic Logger - Beta Version
+Demo script for the Unified Meshtastic Logger - Alpha Version
 
 This script demonstrates the key features and provides a safe way to test
 the unified logger functionality without requiring Meshtastic hardware.
+Alpha version features enhanced reliability, improved error handling,
+and modernized code structure.
 """
 import subprocess
 import sys
@@ -187,7 +189,7 @@ def demo_unified_workflow():
 
 def run_comprehensive_demo():
     """Run all demonstration features."""
-    print("🎯 UNIFIED MESHTASTIC LOGGER - BETA DEMONSTRATION")
+    print("🎯 UNIFIED MESHTASTIC LOGGER - ALPHA DEMONSTRATION")
     print("=" * 60)
     print("This demo showcases the key features of the unified logger.")
     print("Note: Hardware-dependent features will show simulated behavior.\\n")

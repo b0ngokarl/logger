@@ -1,6 +1,6 @@
 Diagnostics (merged)
 ====================
-Generated: 2025-09-10 13:26:43
+Generated: 2025-09-10 19:26:01
 
 Sources telemetry:
   - demo_telemetry.csv

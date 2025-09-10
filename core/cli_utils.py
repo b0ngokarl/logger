@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
 CLI utilities for running meshtastic commands safely.
+
+This module provides secure command execution with proper validation,
+timeout handling, and error reporting for the Alpha version.
 """
 import subprocess
 import re
@@ -13,11 +16,16 @@ def run_cli(cmd: List[str], timeout: int = 30) -> Tuple[bool, str]:
     Run a CLI command safely with timeout and validation.
     
     Args:
-        cmd: Command as list of strings (no shell injection)
-        timeout: Command timeout in seconds
+        cmd: Command as list of strings (prevents shell injection)
+        timeout: Command timeout in seconds (default: 30)
         
     Returns:
         Tuple of (success_flag, output_string)
+        
+    Security Features:
+        - No shell execution to prevent injection
+        - Enforced timeout limits
+        - Input validation on command structure
     """
     # Security: enforce list command, no shell, limited timeout
     if not isinstance(cmd, list) or not cmd:
@@ -43,13 +51,24 @@ def run_cli(cmd: List[str], timeout: int = 30) -> Tuple[bool, str]:
 def validate_node_id(node_id: str) -> bool:
     """
     Validate a Meshtastic node ID format.
-    Supports both hex format (like !ba4bf9d0) and decimal format (like 1828779180)
+    
+    Supports both formats:
+    - Hex format: !ba4bf9d0 (with or without leading !)
+    - Decimal format: 1828779180
     
     Args:
-        node_id: Node ID to validate
+        node_id: Node ID string to validate
         
     Returns:
-        True if valid format, False otherwise
+        bool: True if valid format, False otherwise
+        
+    Examples:
+        >>> validate_node_id("!ba4bf9d0")
+        True
+        >>> validate_node_id("1828779180")  
+        True
+        >>> validate_node_id("invalid")
+        False
     """
     if not node_id:
         return False
