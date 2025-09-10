@@ -18,7 +18,7 @@ from typing import Dict, Optional, Any, List
 
 # Known nodes with display issues from previous debugging
 KNOWN_PROBLEM_NODES = [
-    "2df67288", "277db5ca", "2c9e092b", "75e98c18", "849c4818", "ba656304"
+    "2df67288", "277db5ca", "2c9e092b", "75e98c18", "849c4818", "ba656304", "9eed0410", "a0cc8008"
 ]
 
 class NodePageUpdater:
@@ -179,22 +179,36 @@ class NodePageUpdater:
                 # Read the file
                 html_content = index_path.read_text(encoding='utf-8')
                 
-                # Check if this file has already been fixed
-                if '<!-- Node page fixed -->' in html_content:
-                    continue
-                    
+                # Remove existing fixed marker to ensure we can re-fix previously "fixed" pages
+                html_content = html_content.replace('<!-- Node page fixed -->\n', '')
+                
+                # Flag to track if any changes were made
+                changes_made = False
+                
                 # Remove Node ID from the information table
-                # This pattern matches the Node ID row in the information table
-                pattern = r'<tr>\s*<td><strong>Node ID</strong></td>\s*<td>[^<]*</td>\s*</tr>'
-                html_content = re.sub(pattern, '', html_content)
+                # These patterns match the Node ID row in different information table formats
+                pattern1 = r'<tr>\s*<td><strong>Node ID</strong></td>\s*<td>[^<]*</td>\s*</tr>'
+                pattern2 = r'<tr>\s*<th>Node ID</th>\s*<td>[^<]*</td>\s*</tr>'
                 
-                # Add a marker that this file has been fixed
-                html_content = html_content.replace('</head>', '<!-- Node page fixed -->\n</head>')
+                new_content = re.sub(pattern1, '', html_content)
+                if new_content != html_content:
+                    html_content = new_content
+                    changes_made = True
+                    
+                new_content = re.sub(pattern2, '', html_content)
+                if new_content != html_content:
+                    html_content = new_content
+                    changes_made = True
                 
-                # Write the updated content back to the file
-                index_path.write_text(html_content, encoding='utf-8')
-                fixed_count += 1
-                print(f"[INFO] Fixed duplicate Node ID in {node_dir.name}")
+                # Only count as fixed if changes were made
+                if changes_made:
+                    # Add a marker that this file has been fixed
+                    html_content = html_content.replace('</head>', '<!-- Node page fixed -->\n</head>')
+                    
+                    # Write the updated content back to the file
+                    index_path.write_text(html_content, encoding='utf-8')
+                    fixed_count += 1
+                    print(f"[INFO] Fixed duplicate Node ID in {node_dir.name}")
             except Exception as e:
                 print(f"[ERROR] Failed to fix node page {index_path}: {e}", file=sys.stderr)
         

@@ -17,6 +17,15 @@ python3 meshtastic_logger_refactored.py --nodes !abc123 !def456 --once --plot
 # Discover nodes only
 python3 discover_nodes_refactored.py --detailed
 
+# Enhanced node processing (collect, plot, and enhance in one command)
+python3 enhance_node.py --node '!a0cc8008' --collect --regenerate-charts --device /dev/ttyUSB0
+
+# For quick telemetry collection only (exits immediately after collection)
+python3 enhance_node.py --node '!a0cc8008' --collect --once --device /dev/ttyUSB0
+
+# For chart regeneration and enhancement only (no data collection)
+python3 enhance_node.py --node '!a0cc8008' --regenerate-charts
+
 # Alpha demonstration and testing
 python3 demo_unified_alpha.py
 python3 test_unified_alpha.py
@@ -28,6 +37,8 @@ python3 test_unified_alpha.py
 - Captures traceroute data between nodes to understand the mesh topology
 - Logs data to CSV files with timestamps
 - Generates interactive HTML dashboards with visualizations
+- Unified node processing with enhanced visuals (battery bars, color-coded metrics)
+- Single command workflow with `enhance_node.py` for collection, plotting, and enhancement
 - Creates per-node dedicated pages with detailed metrics and traceroute information
 - **NEW**: Modular architecture with core utility modules
 - **NEW**: Comprehensive unit testing
