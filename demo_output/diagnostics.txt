@@ -1,0 +1,14 @@
+Diagnostics (merged)
+====================
+Generated: 2025-09-10 13:26:43
+
+Sources telemetry:
+  - demo_telemetry.csv
+Sources traceroute:
+  - demo_traceroute.csv
+
+TELEMETRY:
+  rows (merged, unique): 0
+
+TRACEROUTE:
+  rows (merged, unique): 0
