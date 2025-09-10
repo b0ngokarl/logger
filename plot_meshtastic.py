@@ -6,6 +6,7 @@ Plot Meshtastic telemetry & traceroute CSVs
 - Per-node dashboards, traceroute time-series, topology snapshots
 - Diagnostics to verify merged ranges
 - Matplotlib only (no seaborn), single-plot figures
+- Updated to use standardized HTML templates for consistent styling
 
 Usage examples:
     # Single files
@@ -23,7 +24,17 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+import os
 from datetime import datetime
+
+# Add core module to path for template imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'core'))
+try:
+    from html_templates import get_html_template, format_value, create_battery_bar, create_status_indicator
+    TEMPLATES_AVAILABLE = True
+except ImportError:
+    print("[WARN] Could not import html_templates, using fallback styling", file=sys.stderr)
+    TEMPLATES_AVAILABLE = False
 
 def ensure_outdir(p: Path):
     p.mkdir(parents=True, exist_ok=True)
@@ -163,14 +174,207 @@ def diagnostics(df_tele, df_trace, outdir: Path, sources_tele, sources_trace):
     diag_path.write_text("\n".join(lines), encoding="utf-8")
     log_info(f"Wrote diagnostics to {diag_path}")
 
-    # Create a small HTML diagnostics page with summary tables
+    # Build diagnostics HTML content using standardized template
+    content = _build_diagnostics_content(df_tele, df_trace, sources_tele, sources_trace, est_runtimes)
+    
+    # Navigation links
+    navigation = [
+        {'url': 'index.html', 'text': '🏠 Main Dashboard'},
+        {'url': 'nodes.html', 'text': '🌐 All Nodes'},
+        {'url': 'dashboards.html', 'text': '📊 Node Details'}
+    ]
+    
+    # Use standardized template if available
+    if TEMPLATES_AVAILABLE:
+        html = get_html_template(
+            title="🔍 Data Diagnostics",
+            content=content,
+            navigation_links=navigation
+        )
+    else:
+        # Fallback HTML
+        html = _fallback_diagnostics_html(df_tele, df_trace, sources_tele, sources_trace, est_runtimes)
+
+    (outdir / "diagnostics.html").write_text(html, encoding="utf-8")
+    log_info(f"Wrote diagnostics HTML to {(outdir / 'diagnostics.html')}")
+
+def _build_diagnostics_content(df_tele, df_trace, sources_tele, sources_trace, est_runtimes):
+    """Build the main content for the diagnostics page."""
+    
+    content_parts = []
+    
+    # Data sources section
+    sources_list = []
+    for s in sources_tele:
+        sources_list.append(f"<li><strong>Telemetry:</strong> {s}</li>")
+    for s in sources_trace:
+        sources_list.append(f"<li><strong>Traceroute:</strong> {s}</li>")
+    
+    content_parts.append(f"""
+    <div class="section">
+        <h2>📁 Data Sources</h2>
+        <ul>
+            {''.join(sources_list)}
+        </ul>
+    </div>
+    """)
+    
+    # Summary statistics
+    tele_rows = len(df_tele)
+    trace_rows = len(df_trace)
+    tele_nodes = len(df_tele['node'].dropna().unique()) if tele_rows else 0
+    trace_dests = len(df_trace['dest'].dropna().unique()) if trace_rows else 0
+    
+    content_parts.append(f"""
+    <div class="section">
+        <h2>📊 Summary Statistics</h2>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-name">Telemetry Rows</div>
+                <div class="metric-value">{tele_rows}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-name">Traceroute Rows</div>
+                <div class="metric-value">{trace_rows}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-name">Telemetry Nodes</div>
+                <div class="metric-value">{tele_nodes}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-name">Traceroute Destinations</div>
+                <div class="metric-value">{trace_dests}</div>
+            </div>
+        </div>
+    </div>
+    """)
+    
+    # Telemetry details
+    if len(df_tele):
+        tele_rows_html = []
+        for node, part in df_tele.groupby("node"):
+            last = part["timestamp"].max()
+            rows = len(part)
+            latest_batt = part.sort_values("timestamp").iloc[-1]["battery_pct"] if rows else ""
+            latest_volt = part.sort_values("timestamp").iloc[-1]["voltage_v"] if rows else ""
+            latest_runtime = est_runtimes.get(node, "")
+            
+            # Format values with proper handling of empty data
+            batt_display = f"{latest_batt:.1f}%" if latest_batt != "" and pd.notna(latest_batt) else "N/A"
+            volt_display = f"{latest_volt:.2f}V" if latest_volt != "" and pd.notna(latest_volt) else "N/A"
+            runtime_display = latest_runtime if latest_runtime else "N/A"
+            
+            tele_rows_html.append(f"""
+                <tr>
+                    <td style="font-family: monospace;">{node}</td>
+                    <td><span class="timestamp">{_fmt_ts(last)}</span></td>
+                    <td style="text-align: center;">{rows}</td>
+                    <td>{batt_display}</td>
+                    <td>{volt_display}</td>
+                    <td>{runtime_display}</td>
+                </tr>
+            """)
+        
+        content_parts.append(f"""
+        <div class="section">
+            <h2>📡 Telemetry Details</h2>
+            <table class="info-table">
+                <thead>
+                    <tr>
+                        <th>Node</th>
+                        <th>Last Seen</th>
+                        <th>Rows</th>
+                        <th>Latest Battery</th>
+                        <th>Latest Voltage</th>
+                        <th>Est. Runtime</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {''.join(tele_rows_html)}
+                </tbody>
+            </table>
+        </div>
+        """)
+    
+    # Traceroute details  
+    if len(df_trace):
+        trace_rows_html = []
+        for (dest, direction), part in df_trace.groupby(["dest","direction"]):
+            last = part["timestamp"].max()
+            rows = len(part)
+            trace_rows_html.append(f"""
+                <tr>
+                    <td style="font-family: monospace;">{dest}</td>
+                    <td style="text-transform: capitalize;">{direction}</td>
+                    <td><span class="timestamp">{_fmt_ts(last)}</span></td>
+                    <td style="text-align: center;">{rows}</td>
+                </tr>
+            """)
+        
+        content_parts.append(f"""
+        <div class="section">
+            <h2>🗺️ Traceroute Details</h2>
+            <table class="info-table">
+                <thead>
+                    <tr>
+                        <th>Destination</th>
+                        <th>Direction</th>
+                        <th>Last Seen</th>
+                        <th>Rows</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {''.join(trace_rows_html)}
+                </tbody>
+            </table>
+        </div>
+        """)
+    
+    # Data quality section
+    if len(df_tele):
+        quality_info = []
+        for c in ["battery_pct","voltage_v","channel_util_pct","air_tx_pct","uptime_s"]:
+            nan_count = int(df_tele[c].isna().sum())
+            total_count = len(df_tele)
+            percentage = (nan_count / total_count * 100) if total_count > 0 else 0
+            quality_info.append(f"""
+                <tr>
+                    <td>{c.replace('_', ' ').title()}</td>
+                    <td style="text-align: center;">{nan_count}</td>
+                    <td style="text-align: center;">{percentage:.1f}%</td>
+                </tr>
+            """)
+        
+        content_parts.append(f"""
+        <div class="section">
+            <h2>📋 Data Quality</h2>
+            <table class="info-table">
+                <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Missing Values</th>
+                        <th>Missing %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {''.join(quality_info)}
+                </tbody>
+            </table>
+        </div>
+        """)
+    
+    return '\n'.join(content_parts)
+
+def _fallback_diagnostics_html(df_tele, df_trace, sources_tele, sources_trace, est_runtimes):
+    """Fallback HTML for diagnostics if templates are not available."""
+    
     html_lines = [
         "<!doctype html>",
         "<meta charset='utf-8'>",
         "<meta name='viewport' content='width=device-width,initial-scale=1'>",
-        "<title>Diagnostics</title>",
+        "<title>🔍 Data Diagnostics</title>",
         "<style>body{font-family:Arial,Helvetica,sans-serif;margin:16px}table{border-collapse:collapse;width:100%;max-width:900px}td,th{border:1px solid #ddd;padding:6px}th{background:#f3f3f3;text-align:left}</style>",
-        f"<h1>Diagnostics (generated {_now_iso()})</h1>",
+        f"<h1>🔍 Data Diagnostics (generated {_now_iso()})</h1>",
         "<h2>Sources</h2>",
         "<ul>",
     ]
@@ -203,8 +407,7 @@ def diagnostics(df_tele, df_trace, outdir: Path, sources_tele, sources_trace):
             html_lines.append(f"<tr><td>{dest}</td><td>{direction}</td><td>{_fmt_ts(last)}</td><td>{rows}</td></tr>")
         html_lines.append("</table>")
 
-    (outdir / "diagnostics.html").write_text("\n".join(html_lines), encoding="utf-8")
-    log_info(f"Wrote diagnostics HTML to {(outdir / 'diagnostics.html')}")
+    return "\n".join(html_lines)
 
 def plot_per_node_dashboards(df: pd.DataFrame, outdir: Path, force_regenerate=False):
     metrics = [
@@ -382,21 +585,19 @@ def plot_topology_snapshots(df: pd.DataFrame, outdir: Path):
         plt.close()
 
 def write_comprehensive_nodes_list(tele_df: pd.DataFrame, trace_df: pd.DataFrame, outdir: Path):
-    """Create comprehensive nodes.html with status indicators and statistics"""
+    """Create comprehensive nodes.html with status indicators and statistics using standardized template"""
     
-    # Get unique nodes from both telemetry and traceroute
-    tele_nodes = set(tele_df['node'].unique()) if not tele_df.empty else set()
-    trace_nodes = set()
+    # Get all unique nodes from both datasets
+    tele_nodes = set(tele_df['node'].dropna().unique()) if not tele_df.empty else set()
+    trace_nodes = set() 
     if not trace_df.empty:
-        for col in ['source', 'dest']:
+        # Get nodes from traceroute data (from both source and destination)
+        for col in ['from', 'to', 'dest', 'source']:
             if col in trace_df.columns:
-                trace_nodes.update(trace_df[col].unique())
+                trace_nodes.update(trace_df[col].dropna().unique())
     
-    all_nodes = tele_nodes | trace_nodes
-    
-    # Calculate node statistics
+    all_nodes = tele_nodes.union(trace_nodes)
     node_stats = []
-    current_time = datetime.now()
     
     for node in sorted(all_nodes):
         stats = {
@@ -406,7 +607,8 @@ def write_comprehensive_nodes_list(tele_df: pd.DataFrame, trace_df: pd.DataFrame
             'last_seen': None,
             'battery_pct': None,
             'status': '🔴',  # Default to stale
-            'status_text': 'Stale'
+            'status_text': 'Stale',
+            'status_class': 'status-stale'
         }
         
         # Get latest telemetry data for this node
@@ -427,25 +629,201 @@ def write_comprehensive_nodes_list(tele_df: pd.DataFrame, trace_df: pd.DataFrame
                 if hours_since < 1:
                     stats['status'] = '🟢'
                     stats['status_text'] = 'Active'
+                    stats['status_class'] = 'status-active'
                 elif hours_since < 24:
                     stats['status'] = '🟡'
                     stats['status_text'] = 'Recent'
+                    stats['status_class'] = 'status-recent'
         
         node_stats.append(stats)
     
-    # Generate HTML
+    # Build the content using standardized components
+    content = _build_nodes_list_content(node_stats, all_nodes, tele_nodes, trace_nodes)
+    
+    # Navigation links
+    navigation = [
+        {'url': 'index.html', 'text': '🏠 Main Dashboard'},
+        {'url': 'dashboards.html', 'text': '📊 Node Details'},
+        {'url': 'diagnostics.html', 'text': '🔍 Diagnostics'}
+    ]
+    
+    # Use standardized template if available
+    if TEMPLATES_AVAILABLE:
+        html = get_html_template(
+            title="🌐 Meshtastic Network Nodes",
+            content=content,
+            navigation_links=navigation
+        )
+    else:
+        # Fallback HTML
+        html = _fallback_nodes_html(node_stats, all_nodes, tele_nodes, trace_nodes)
+    
+    (outdir / "nodes.html").write_text(html, encoding="utf-8")
+    log_info(f"Wrote comprehensive nodes list to {(outdir / 'nodes.html')}")
+
+def _build_nodes_list_content(node_stats, all_nodes, tele_nodes, trace_nodes):
+    """Build the main content for the nodes list page."""
+    
+    # Summary statistics
+    total_nodes = len(all_nodes)
+    telemetry_nodes = len(tele_nodes)
+    routing_nodes = len(trace_nodes)
+    active_nodes = len([s for s in node_stats if s['status'] == '🟢'])
+    
+    # Build statistics cards
+    stats_content = f"""
+    <div class="section">
+        <h2>📊 Network Summary</h2>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-name">Total Nodes</div>
+                <div class="metric-value">{total_nodes}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-name">📊 Telemetry Active</div>
+                <div class="metric-value">{telemetry_nodes}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-name">🔗 Routing Active</div>
+                <div class="metric-value">{routing_nodes}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-name">🟢 Currently Active</div>
+                <div class="metric-value">{active_nodes}</div>
+            </div>
+        </div>
+    </div>
+    """
+    
+    # Build nodes table
+    rows_html = []
+    for stats in node_stats:
+        # Battery visualization
+        battery_cell = ""
+        if stats['battery_pct'] is not None:
+            if TEMPLATES_AVAILABLE:
+                battery_cell = create_battery_bar(stats['battery_pct'])
+            else:
+                battery_pct = stats['battery_pct']
+                battery_color = "#4CAF50" if battery_pct > 75 else "#FF9800" if battery_pct > 25 else "#F44336"
+                battery_cell = f"""
+                    <div style="display: flex; align-items: center;">
+                        <div style="width: 60px; height: 10px; background: #ddd; border-radius: 5px; margin-right: 8px; overflow: hidden;">
+                            <div style="width: {battery_pct}%; height: 100%; background: {battery_color};"></div>
+                        </div>
+                        <span>{battery_pct:.1f}%</span>
+                    </div>
+                """
+        else:
+            battery_cell = '<span class="empty-value">N/A</span>'
+        
+        # Status indicator
+        if TEMPLATES_AVAILABLE:
+            status_html = f'<span class="status-indicator {stats["status_class"]}">{stats["status"]} {stats["status_text"]}</span>'
+        else:
+            status_html = f'{stats["status"]} {stats["status_text"]}'
+        
+        # Icons for telemetry and routing
+        telemetry_icon = "📊" if stats['has_telemetry'] else "❌"
+        routing_icon = "🔗" if stats['has_routing'] else "❌"
+        last_seen = stats['last_seen'] or "Unknown"
+        
+        # Node link - prefer dashboards link if available
+        node_link = f'<a href="dashboards.html#{stats["node"]}" style="font-family: monospace; color: #2196F3; text-decoration: none;">{stats["node"]}</a>'
+        
+        rows_html.append(f"""
+            <tr>
+                <td>{node_link}</td>
+                <td>{status_html}</td>
+                <td><span class="timestamp">{last_seen}</span></td>
+                <td>{battery_cell}</td>
+                <td style="text-align: center;">{telemetry_icon}</td>
+                <td style="text-align: center;">{routing_icon}</td>
+            </tr>
+        """)
+    
+    table_content = f"""
+    <div class="section">
+        <h2>📋 Node List</h2>
+        <input type="text" class="search-box" placeholder="🔍 Search nodes..." onkeyup="filterNodes()">
+        
+        <table id="nodesTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)" style="cursor: pointer;">Node ID ↕️</th>
+                    <th onclick="sortTable(1)" style="cursor: pointer;">Status ↕️</th>
+                    <th onclick="sortTable(2)" style="cursor: pointer;">Last Seen ↕️</th>
+                    <th>🔋 Battery</th>
+                    <th>📊 Telemetry</th>
+                    <th>🔗 Routing</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(rows_html)}
+            </tbody>
+        </table>
+    </div>
+    """
+    
+    # JavaScript for search and sort functionality
+    javascript_content = """
+    <script>
+        function filterNodes() {
+            const input = document.querySelector('.search-box');
+            const filter = input.value.toUpperCase();
+            const table = document.getElementById('nodesTable');
+            const rows = table.getElementsByTagName('tr');
+            
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const nodeId = row.getElementsByTagName('td')[0];
+                if (nodeId) {
+                    const txtValue = nodeId.textContent || nodeId.innerText;
+                    row.style.display = txtValue.toUpperCase().indexOf(filter) > -1 ? '' : 'none';
+                }
+            }
+        }
+        
+        function sortTable(columnIndex) {
+            const table = document.getElementById('nodesTable');
+            let rows = Array.from(table.rows).slice(1);
+            const isAscending = table.getAttribute('data-sort-direction') !== 'asc';
+            
+            rows.sort((a, b) => {
+                const aText = a.cells[columnIndex].textContent.trim();
+                const bText = b.cells[columnIndex].textContent.trim();
+                
+                if (columnIndex === 2) { // Date column
+                    return isAscending ? 
+                        new Date(aText) - new Date(bText) : 
+                        new Date(bText) - new Date(aText);
+                }
+                
+                return isAscending ? 
+                    aText.localeCompare(bText) : 
+                    bText.localeCompare(aText);
+            });
+            
+            rows.forEach(row => table.appendChild(row));
+            table.setAttribute('data-sort-direction', isAscending ? 'asc' : 'desc');
+        }
+    </script>
+    """
+    
+    return stats_content + table_content + javascript_content
+
+def _fallback_nodes_html(node_stats, all_nodes, tele_nodes, trace_nodes):
+    """Fallback HTML for nodes list if templates are not available."""
+    total_nodes = len(all_nodes)
+    telemetry_nodes = len(tele_nodes)
+    routing_nodes = len(trace_nodes)
+    
     rows_html = []
     for stats in node_stats:
         battery_cell = ""
         if stats['battery_pct'] is not None:
             battery_pct = stats['battery_pct']
-            if battery_pct > 75:
-                battery_color = "#4CAF50"  # Green
-            elif battery_pct > 25:
-                battery_color = "#FF9800"  # Orange
-            else:
-                battery_color = "#F44336"  # Red
-            
+            battery_color = "#4CAF50" if battery_pct > 75 else "#FF9800" if battery_pct > 25 else "#F44336"
             battery_cell = f"""
                 <div style="display: flex; align-items: center;">
                     <div style="width: 60px; height: 10px; background: #ddd; border-radius: 5px; margin-right: 8px; overflow: hidden;">
@@ -472,503 +850,226 @@ def write_comprehensive_nodes_list(tele_df: pd.DataFrame, trace_df: pd.DataFrame
             </tr>
         """)
     
-    # Calculate summary statistics
-    total_nodes = len(all_nodes)
-    telemetry_nodes = len(tele_nodes)
-    routing_nodes = len(trace_nodes)
-    
-    html = f"""<!DOCTYPE html>
+    return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🌐 Meshtastic Network Nodes</title>
     <style>
-        * {{ box-sizing: border-box; }}
-        
-        body {{
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }}
-        
-        .container {{
-            max-width: 1200px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }}
-        
-        .header {{
-            background: linear-gradient(45deg, #2196F3, #21CBF3);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }}
-        
-        .header h1 {{
-            margin: 0;
-            font-size: 2.5em;
-            font-weight: 300;
-        }}
-        
-        .stats-grid {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            padding: 30px;
-            background: #f8f9fa;
-        }}
-        
-        .stat-card {{
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }}
-        
-        .stat-number {{
-            font-size: 2em;
-            font-weight: bold;
-            color: #2196F3;
-        }}
-        
-        .stat-label {{
-            color: #666;
-            font-size: 0.9em;
-            margin-top: 5px;
-        }}
-        
-        .table-container {{
-            padding: 30px;
-            overflow-x: auto;
-        }}
-        
-        .search-box {{
-            width: 100%;
-            padding: 15px;
-            font-size: 16px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            transition: border-color 0.3s;
-        }}
-        
-        .search-box:focus {{
-            outline: none;
-            border-color: #2196F3;
-        }}
-        
-        table {{
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }}
-        
-        th, td {{
-            padding: 15px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }}
-        
-        th {{
-            background: #2196F3;
-            color: white;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.3s;
-        }}
-        
-        th:hover {{
-            background: #1976D2;
-        }}
-        
-        tr:hover {{
-            background: #f5f5f5;
-        }}
-        
-        .nav-link {{
-            display: inline-block;
-            padding: 10px 20px;
-            background: #2196F3;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            margin: 10px;
-            transition: background 0.3s;
-        }}
-        
-        .nav-link:hover {{
-            background: #1976D2;
-        }}
-        
-        .navigation {{
-            text-align: center;
-            padding: 20px;
-            background: #f8f9fa;
-        }}
+        body {{ font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }}
+        table {{ width: 100%; border-collapse: collapse; background: white; }}
+        th, td {{ padding: 12px; border: 1px solid #ddd; }}
+        th {{ background: #2196F3; color: white; }}
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🌐 Meshtastic Network Nodes</h1>
-            <p>Complete network overview • Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-        </div>
-        
-        <div class="navigation">
-            <a href="index.html" class="nav-link">🏠 Main Dashboard</a>
-            <a href="dashboards.html" class="nav-link">📊 Node Details</a>
-            <a href="diagnostics.html" class="nav-link">🔍 Diagnostics</a>
-        </div>
-        
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-number">{total_nodes}</div>
-                <div class="stat-label">Total Nodes</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">{telemetry_nodes}</div>
-                <div class="stat-label">📊 Telemetry Active</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">{routing_nodes}</div>
-                <div class="stat-label">🔗 Routing Active</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">{len([s for s in node_stats if s['status'] == '🟢'])}</div>
-                <div class="stat-label">🟢 Active Nodes</div>
-            </div>
-        </div>
-        
-        <div class="table-container">
-            <input type="text" class="search-box" placeholder="🔍 Search nodes..." onkeyup="filterNodes()">
-            
-            <table id="nodesTable">
-                <thead>
-                    <tr>
-                        <th onclick="sortTable(0)">Node ID</th>
-                        <th onclick="sortTable(1)">Status</th>
-                        <th onclick="sortTable(2)">Last Seen</th>
-                        <th onclick="sortTable(3)">🔋 Battery</th>
-                        <th onclick="sortTable(4)">📊 Telemetry</th>
-                        <th onclick="sortTable(5)">🔗 Routing</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {''.join(rows_html)}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    
-    <script>
-        function filterNodes() {{
-            const input = document.querySelector('.search-box');
-            const filter = input.value.toUpperCase();
-            const table = document.getElementById('nodesTable');
-            const rows = table.getElementsByTagName('tr');
-            
-            for (let i = 1; i < rows.length; i++) {{
-                const row = rows[i];
-                const nodeId = row.getElementsByTagName('td')[0];
-                if (nodeId) {{
-                    const txtValue = nodeId.textContent || nodeId.innerText;
-                    row.style.display = txtValue.toUpperCase().indexOf(filter) > -1 ? '' : 'none';
-                }}
-            }}
-        }}
-        
-        function sortTable(columnIndex) {{
-            const table = document.getElementById('nodesTable');
-            let rows = Array.from(table.rows).slice(1);
-            const isAscending = table.getAttribute('data-sort-direction') !== 'asc';
-            
-            rows.sort((a, b) => {{
-                const aText = a.cells[columnIndex].textContent.trim();
-                const bText = b.cells[columnIndex].textContent.trim();
-                
-                if (columnIndex === 2) {{ // Date column
-                    return isAscending ? 
-                        new Date(aText) - new Date(bText) : 
-                        new Date(bText) - new Date(aText);
-                }}
-                
-                return isAscending ? 
-                    aText.localeCompare(bText) : 
-                    bText.localeCompare(aText);
-            }});
-            
-            rows.forEach(row => table.appendChild(row));
-            table.setAttribute('data-sort-direction', isAscending ? 'asc' : 'desc');
-        }}
-    </script>
+    <h1>🌐 Meshtastic Network Nodes</h1>
+    <p>Total: {total_nodes} nodes | Telemetry: {telemetry_nodes} | Routing: {routing_nodes}</p>
+    <table>
+        <tr>
+            <th>Node ID</th>
+            <th>Status</th>
+            <th>Last Seen</th>
+            <th>Battery</th>
+            <th>Telemetry</th>
+            <th>Routing</th>
+        </tr>
+        {''.join(rows_html)}
+    </table>
 </body>
 </html>"""
-    
-    (outdir / "nodes.html").write_text(html, encoding="utf-8")
-    log_info(f"Wrote comprehensive nodes list to {(outdir / 'nodes.html')}")
 
 def write_root_index(outdir: Path):
-    # Enhanced root index with modern styling and comprehensive navigation
+    """Enhanced root index with modern styling and comprehensive navigation using standardized template"""
+    
+    # Build the content using standardized components
+    content = _build_root_index_content(outdir)
+    
+    # Navigation links (empty since this IS the main page)
+    navigation = []
+    
+    # Use standardized template if available
+    if TEMPLATES_AVAILABLE:
+        html = get_html_template(
+            title="🚀 Meshtastic Network Dashboard", 
+            content=content,
+            navigation_links=navigation
+        )
+    else:
+        # Fallback HTML
+        html = _fallback_root_index_html(outdir, content)
+    
+    (outdir / "index.html").write_text(html, encoding="utf-8")
+    log_info(f"Wrote enhanced root index to {(outdir / 'index.html')}")
+
+def _build_root_index_content(outdir: Path):
+    """Build the main content for the root index page."""
+    
+    # Navigation cards section
+    nav_cards = []
+    if (outdir / "nodes.html").exists():
+        nav_cards.append("""
+            <a href="nodes.html" class="metric-card" style="text-decoration: none; color: inherit; display: block; min-height: 120px;">
+                <div style="text-align: center; padding: 10px;">
+                    <div style="font-size: 2.5em; margin-bottom: 10px;">🌐</div>
+                    <div style="font-weight: bold; margin-bottom: 5px;">All Nodes</div>
+                    <div style="font-size: 0.9em; color: #666;">Complete network directory with status indicators</div>
+                </div>
+            </a>
+        """)
+    
+    if (outdir / "dashboards.html").exists():
+        nav_cards.append("""
+            <a href="dashboards.html" class="metric-card" style="text-decoration: none; color: inherit; display: block; min-height: 120px;">
+                <div style="text-align: center; padding: 10px;">
+                    <div style="font-size: 2.5em; margin-bottom: 10px;">📊</div>
+                    <div style="font-weight: bold; margin-bottom: 5px;">Node Dashboards</div>
+                    <div style="font-size: 0.9em; color: #666;">Individual telemetry charts for each node</div>
+                </div>
+            </a>
+        """)
+    
+    if (outdir / "diagnostics.html").exists():
+        nav_cards.append("""
+            <a href="diagnostics.html" class="metric-card" style="text-decoration: none; color: inherit; display: block; min-height: 120px;">
+                <div style="text-align: center; padding: 10px;">
+                    <div style="font-size: 2.5em; margin-bottom: 10px;">🔍</div>
+                    <div style="font-weight: bold; margin-bottom: 5px;">Diagnostics</div>
+                    <div style="font-size: 0.9em; color: #666;">Data quality and merge verification</div>
+                </div>
+            </a>
+        """)
+    
+    # Network analysis charts section
     chart_items = []
     for name in ["traceroute_hops.png", "traceroute_bottleneck_db.png"]:
         if (outdir / name).exists():
+            chart_title = name.replace('_', ' ').replace('.png', '').title()
             chart_items.append(f"""
                 <div class="chart-card">
-                    <h3>{name.replace('_', ' ').replace('.png', '').title()}</h3>
+                    <h3>{chart_title}</h3>
                     <a href='{name}'>
-                        <img src='{name}' alt='{name}' class="chart-image">
+                        <img src='{name}' alt='{chart_title}' class="chart-image">
                     </a>
                 </div>
             """)
     
-    # Navigation links
-    nav_links = []
-    if (outdir / "dashboards.html").exists():
-        nav_links.append('<a href="dashboards.html" class="nav-card">📊<br>Node Dashboards</a>')
-    if (outdir / "diagnostics.html").exists():
-        nav_links.append('<a href="diagnostics.html" class="nav-card">🔍<br>Diagnostics</a>')
-    if (outdir / "nodes.html").exists():
-        nav_links.append('<a href="nodes.html" class="nav-card">🌐<br>All Nodes</a>')
-    
-    # Topology snapshots
+    # Topology snapshots section
     topo_imgs = sorted([p.name for p in outdir.glob("topology_*.png")])
     topo_cards = []
     for img in topo_imgs:
+        topo_title = img.replace('_', ' ').replace('.png', '').title()
         topo_cards.append(f"""
-            <div class="topo-card">
-                <h4>{img.replace('_', ' ').replace('.png', '').title()}</h4>
+            <div class="chart-card" style="max-width: 300px;">
+                <h3 style="font-size: 1em;">{topo_title}</h3>
                 <a href='{img}'>
-                    <img src='{img}' alt='{img}' class="topo-image">
+                    <img src='{img}' alt='{topo_title}' class="chart-image">
                 </a>
             </div>
         """)
     
-    html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 Meshtastic Network Dashboard</title>
-    <style>
-        * {{ box-sizing: border-box; }}
-        
-        body {{
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }}
-        
-        .header {{
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 30px;
-            text-align: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }}
-        
-        .header h1 {{
-            margin: 0;
-            font-size: 3em;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }}
-        
-        .header p {{
-            color: #666;
-            font-size: 1.1em;
-            margin: 10px 0 0 0;
-        }}
-        
-        .container {{
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 30px;
-        }}
-        
-        .nav-grid {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }}
-        
-        .nav-card {{
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 15px;
-            text-align: center;
-            text-decoration: none;
-            color: #333;
-            font-weight: 500;
-            font-size: 1.1em;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }}
-        
-        .nav-card:hover {{
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-            background: white;
-        }}
-        
-        .section {{
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }}
-        
-        .section h2 {{
-            margin-top: 0;
-            color: #333;
-            font-size: 1.8em;
-            border-bottom: 3px solid #667eea;
-            padding-bottom: 10px;
-        }}
-        
-        .charts-grid {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-        }}
-        
-        .chart-card {{
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
-        }}
-        
-        .chart-card h3 {{
-            margin-top: 0;
-            color: #333;
-        }}
-        
-        .chart-image {{
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
-        }}
-        
-        .chart-image:hover {{
-            transform: scale(1.02);
-        }}
-        
-        .topo-grid {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }}
-        
-        .topo-card {{
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-        }}
-        
-        .topo-card h4 {{
-            margin-top: 0;
-            color: #333;
-            font-size: 0.9em;
-        }}
-        
-        .topo-image {{
-            max-width: 100%;
-            height: auto;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }}
-        
-        .footer {{
-            text-align: center;
-            padding: 20px;
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 0.9em;
-        }}
-        
-        @media (max-width: 768px) {{
-            .header h1 {{
-                font-size: 2em;
-            }}
-            .container {{
-                padding: 15px;
-            }}
-            .nav-card {{
-                padding: 20px;
-                font-size: 1em;
-            }}
-        }}
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>🚀 Meshtastic Network Dashboard</h1>
-        <p>Network Analysis & Monitoring • Generated: {_now_iso()}</p>
-    </div>
+    # Build sections
+    content_parts = []
     
-    <div class="container">
-        <div class="nav-grid">
-            {''.join(nav_links)}
+    # Navigation section
+    if nav_cards:
+        content_parts.append(f"""
+        <div class="section">
+            <h2>🧭 Navigation</h2>
+            <div class="metrics-grid">
+                {''.join(nav_cards)}
+            </div>
         </div>
-        
-        {f'''
+        """)
+    
+    # Charts section
+    if chart_items:
+        content_parts.append(f"""
         <div class="section">
             <h2>📈 Network Analysis Charts</h2>
             <div class="charts-grid">
                 {''.join(chart_items)}
             </div>
         </div>
-        ''' if chart_items else ''}
-        
-        {f'''
+        """)
+    
+    # Topology section
+    if topo_cards:
+        content_parts.append(f"""
         <div class="section">
             <h2>🗺️ Network Topology Snapshots</h2>
-            <div class="topo-grid">
+            <div class="charts-grid">
                 {''.join(topo_cards)}
             </div>
         </div>
-        ''' if topo_cards else ''}
-        
-        {f'''
+        """)
+    
+    # Getting started section if no data yet
+    if not (nav_cards or chart_items or topo_cards):
+        content_parts.append("""
         <div class="section">
-            <h2>ℹ️ Getting Started</h2>
-            <p>Welcome to your Meshtastic network dashboard! Use the navigation cards above to explore:</p>
+            <h2>🚀 Getting Started</h2>
+            <p>Welcome to your Meshtastic network dashboard!</p>
+            <p>To get started, collect some telemetry and traceroute data using the logger scripts:</p>
             <ul>
+                <li><code>python3 meshtastic_telemetry_logger.py</code> - Collect telemetry data</li>
+                <li><code>python3 plot_meshtastic.py --telemetry telemetry.csv --traceroute traceroute.csv --outdir plots</code> - Generate visualizations</li>
+            </ul>
+            <p>Once you have data, this dashboard will show:</p>
+            <ul>
+                <li><strong>🌐 All Nodes:</strong> Complete network directory with status indicators</li>
                 <li><strong>📊 Node Dashboards:</strong> Individual telemetry charts for each node</li>
                 <li><strong>🔍 Diagnostics:</strong> Data quality and merge verification</li>
-                <li><strong>🌐 All Nodes:</strong> Complete network directory with status indicators</li>
+                <li><strong>📈 Network Charts:</strong> Network-wide analysis and topology</li>
             </ul>
         </div>
-        ''' if not (chart_items or topo_cards) else ''}
-    </div>
+        """)
     
-    <div class="footer">
-        <p>Meshtastic Logger v3.0 • Enhanced dashboards with history preservation</p>
+    return '\n'.join(content_parts)
+
+def _fallback_root_index_html(outdir: Path, content: str):
+    """Fallback HTML for root index if templates are not available."""
+    
+    # Count available files to show status
+    nav_files = len([f for f in ["nodes.html", "dashboards.html", "diagnostics.html"] if (outdir / f).exists()])
+    chart_files = len([f for f in ["traceroute_hops.png", "traceroute_bottleneck_db.png"] if (outdir / f).exists()])
+    topo_files = len(list(outdir.glob("topology_*.png")))
+    
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Meshtastic Network Dashboard</title>
+    <style>
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }}
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }}
+        h1, h2 {{ color: #333; }}
+        .nav-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }}
+        .nav-card {{ background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Meshtastic Network Dashboard</h1>
+        <p>Generated: {_now_iso()} • Files: {nav_files} pages, {chart_files} charts, {topo_files} topology snapshots</p>
+        {content}
     </div>
 </body>
 </html>"""
-    
-    (outdir / "index.html").write_text(html, encoding="utf-8")
-    log_info(f"Wrote enhanced root index to {(outdir / 'index.html')}")
 
 def main():
     args = parse_args()
