@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """
 Configuration management for Meshtastic logger.
+
+This module provides centralized configuration management with:
+- Dataclass-based configuration for type safety
+- Environment variable support for containerized deployments
+- Validation methods for configuration integrity
+- Path management utilities for cross-platform compatibility
 """
 import os
 from dataclasses import dataclass, field
@@ -10,7 +16,16 @@ from pathlib import Path
 
 @dataclass
 class LoggerConfig:
-    """Configuration class for Meshtastic logger."""
+    """
+    Configuration class for Meshtastic logger.
+    
+    Provides type-safe configuration management with:
+    - Connection settings for serial/network communication
+    - Output file configuration with path validation
+    - Execution control parameters
+    - Feature toggles for optional functionality
+    - Node targeting and discovery settings
+    """
     
     # Connection settings
     serial_device: Optional[str] = None

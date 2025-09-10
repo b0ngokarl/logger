@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-Unified Meshtastic Telemetry & Traceroute Logger - Beta Version
+Unified Meshtastic Telemetry & Traceroute Logger - Alpha Version
 
 This unified script consolidates all functionality into a single interface:
-- Data collection (telemetry & traceroute)
-- Plotting and dashboard generation
-- Node discovery and management
-- Real-time monitoring and updates
+- Data collection (telemetry & traceroute) with enhanced reliability
+- Plotting and dashboard generation with improved error handling
+- Node discovery and management with alpha-grade validation
+- Real-time monitoring and updates with modernized architecture
 
 All features work together seamlessly without needing to run multiple scripts.
-This is the beta version that refines existing features and corrects errors.
+This is the alpha version that features enhanced organization, improved maintainability,
+and modernized code structure while preserving all existing functionality.
 """
 import argparse
 import json

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Comprehensive test suite for the Unified Meshtastic Logger - Beta Version
+Comprehensive test suite for the Unified Meshtastic Logger - Alpha Version
 
 This test script validates all functionality including:
-- Node discovery
-- Data collection (telemetry & traceroute)
-- Plotting and dashboard generation
-- Error handling and edge cases
-- Integration between components
+- Node discovery with enhanced error handling
+- Data collection (telemetry & traceroute) with improved reliability
+- Plotting and dashboard generation with alpha-grade validation
+- Error handling and edge cases with comprehensive coverage
+- Integration between components with modernized testing patterns
 """
 import unittest
 import tempfile

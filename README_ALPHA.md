@@ -1,22 +1,22 @@
-# Unified Meshtastic Logger - Beta Version
+# Unified Meshtastic Logger - Alpha Version
 
 ## Overview
 
-The **Unified Meshtastic Logger** is a comprehensive, single-script solution that consolidates all Meshtastic telemetry and traceroute functionality into one seamless interface. This beta version refines existing features, corrects errors, and eliminates the need to run multiple scripts manually.
+The **Unified Meshtastic Logger** is a comprehensive, single-script solution that consolidates all Meshtastic telemetry and traceroute functionality into one seamless interface. This alpha version features enhanced organization, improved maintainability, and modernized code structure while preserving all existing functionality.
 
 ## 🚀 Key Features
 
 ### Unified Interface
-- **Single Command**: All functionality accessible through one script
-- **Integrated Plotting**: Automatic dashboard generation with proper Python interpreter detection
-- **Smart Discovery**: Intelligent node discovery and management
-- **Comprehensive Logging**: Telemetry and traceroute data collection in one workflow
+- **Single Command**: All functionality accessible through one script with alpha-grade reliability
+- **Integrated Plotting**: Automatic dashboard generation with enhanced Python interpreter detection
+- **Smart Discovery**: Intelligent node discovery and management with improved error handling
+- **Comprehensive Logging**: Telemetry and traceroute data collection in one optimized workflow
 
-### Enhanced Functionality
-- **Real-time Monitoring**: Continuous data collection with configurable intervals
+### Enhanced Functionality  
+- **Real-time Monitoring**: Continuous data collection with configurable intervals and improved stability
 - **Dashboard Generation**: Automatic HTML dashboard creation with modern responsive design
-- **Error Recovery**: Robust error handling and graceful degradation
-- **Statistics Tracking**: Comprehensive statistics and final summaries
+- **Error Recovery**: Robust error handling and graceful degradation with alpha-level resilience
+- **Statistics Tracking**: Comprehensive statistics and final summaries with enhanced metrics
 
 ### Flexible Usage Modes
 - **Discovery Mode**: `--discover` - Find and display available nodes
@@ -146,7 +146,7 @@ traceroute.csv           # Network topology and routing data
 ### Run the Test Suite
 ```bash
 # Run comprehensive tests
-python3 test_unified_beta.py
+python3 test_unified_alpha.py
 
 # Test with sample data
 python3 meshtastic_unified.py --nodes !2c9e092b --once --plot
@@ -224,7 +224,7 @@ python3 plot_meshtastic.py --telemetry telemetry.csv --traceroute traceroute.csv
 - Use `--discover` to verify available nodes
 
 **"Plotting failed: ModuleNotFoundError: No module named 'pandas'"**
-- Fixed in beta version - uses correct Python interpreter automatically
+- Fixed in alpha version - uses correct Python interpreter automatically
 
 **Dashboard not updating**
 - Use `--regenerate-charts` to force refresh
