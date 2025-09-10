@@ -21,3 +21,11 @@ __pycache__/
 *.svg
 *.bak
 *.new
+
+# Test artifacts
+.coverage
+.pytest_cache/
+test_*.csv
+
+# Temporary files from refactoring
+plots_test/
