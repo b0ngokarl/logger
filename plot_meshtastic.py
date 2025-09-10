@@ -33,6 +33,7 @@ def parse_args():
     ap.add_argument("--telemetry", nargs="+", required=True, help="One or more telemetry CSVs")
     ap.add_argument("--traceroute", nargs="+", required=True, help="One or more traceroute CSVs")
     ap.add_argument("--outdir", default="plots", help="Output directory for PNGs and HTML")
+    ap.add_argument("--regenerate-charts", action="store_true", help="Force regeneration of all charts")
     return ap.parse_args()
 
 def read_merge_telemetry(paths):
@@ -188,7 +189,7 @@ def diagnostics(df_tele, df_trace, outdir: Path, sources_tele, sources_trace):
     (outdir / "diagnostics.html").write_text("\n".join(html_lines), encoding="utf-8")
     log_info(f"Wrote diagnostics HTML to {(outdir / 'diagnostics.html')}")
 
-def plot_per_node_dashboards(df: pd.DataFrame, outdir: Path):
+def plot_per_node_dashboards(df: pd.DataFrame, outdir: Path, force_regenerate=False):
     metrics = [
         ("battery_pct", "Battery (%)", "battery"),
         ("voltage_v", "Voltage (V)", "voltage"),
@@ -212,6 +213,13 @@ def plot_per_node_dashboards(df: pd.DataFrame, outdir: Path):
                 y = y / 3600.0
             if y.dropna().empty:
                 continue
+                
+            fname = node_dir / f"{slug}.png"
+            # Skip regenerating if file exists and force_regenerate is False
+            if not force_regenerate and fname.exists():
+                imgs.append(fname.name)
+                continue
+                
             plt.figure()
             plt.plot(x, y)
             plt.xlabel("Time")
@@ -228,7 +236,6 @@ def plot_per_node_dashboards(df: pd.DataFrame, outdir: Path):
                     time_to_zero_days = time_to_zero_sec / 3600 / 24
                     plt.text(0.05, 0.95, f'Est. runtime: {time_to_zero_days:.1f} days', transform=plt.gca().transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
             plt.tight_layout()
-            fname = node_dir / f"{slug}.png"
             plt.savefig(fname)
             plt.close()
             imgs.append(fname.name)
@@ -397,7 +404,7 @@ def main():
     diagnostics(tele, trace, outdir, args.telemetry, args.traceroute)
 
     if not tele.empty:
-        plot_per_node_dashboards(tele, outdir)
+        plot_per_node_dashboards(tele, outdir, force_regenerate=args.regenerate_charts)
     else:
         log_warn("No telemetry data after merge.")
 

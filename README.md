@@ -1,73 +1,58 @@
-# meshtastic-telemetry-logger
+# Meshtastic Telemetry & Traceroute Logger
 
-This repository contains a small Meshtastic telemetry & traceroute logger and plotter.
+A toolkit for collecting, logging, and visualizing telemetry and traceroute data from Meshtastic nodes.
 
-Quick start
+## Features
 
-1. Create and activate a virtualenv in the project root (optional but recommended):
+- Collects telemetry (battery, voltage, channel utilization, air time, uptime) from Meshtastic nodes
+- Captures traceroute data between nodes to understand the mesh topology
+- Logs data to CSV files with timestamps
+- Generates interactive HTML dashboards with visualizations
+- Creates per-node dedicated pages with detailed metrics and traceroute information
 
-   python -m venv .venv
-   source .venv/bin/activate
+## Files
 
-2. Install runtime requirements:
+- `meshtastic_telemetry_logger.py`: Main script for collecting and logging data
+- `discover_all_nodes.py`: Script for automatically discovering all nodes on the network
+- `node_page_updater.py`: Class for updating node-specific pages
+- `update_node_pages.py`: Helper script for generating per-node HTML dashboards
+- `test_node_pages.py`: Test utility for the node pages generator
+- `test_all_nodes.py`: Example script demonstrating all-nodes discovery and chart regeneration
+- `plots/`: Directory containing generated visualizations and HTML dashboards
+  - `index.html`: Main dashboard entry point
+  - `dashboards.html`: Grid of all node dashboards with key metrics
+  - `nodes.html`: Table of all discovered nodes
+  - `diagnostics.html`: Detailed diagnostic information
+  - `node_{id}/`: Per-node directories containing dedicated dashboards
+    - `index.html`: Node-specific dashboard with telemetry and traceroute data
+    - Various metric graphs (PNG files)
 
-   pip install -r requirements.txt
+## Recent Changes
 
+- Added automatic node discovery with the `--all-nodes` flag
+- Added chart regeneration option with the `--regenerate-charts` flag
+- Added per-node dedicated pages with both telemetry and traceroute data
+- Improved traceroute visualization with better styling and layout
+- Created a dashboard grid for easy navigation between nodes
+- Enhanced integration between telemetry and traceroute data
+- Added directional path visualization (forward/backward paths)
 
-3. Run the logger once (replace nodes with your node IDs):
+## Usage Examples
 
-   python meshtastic_telemetry_logger.py --nodes !exampleA !exampleB --once
+### Discover All Nodes Automatically
 
-   This will append rows to `telemetry.csv` and `traceroute.csv`.
-
-4. By default the logger will automatically run `plot_meshtastic.py` after each `--once` run and write output into the `plots/` directory. Use `--no-plot` to disable automatic plotting.
-
-Useful options:
-  --interval N        Run continuously every N seconds between cycles
-  --once              Run a single cycle and exit
-  --no-plot           Skip automatic plotting after each run
-  --plot-outdir PATH  Directory for plot output (default: plots)
-  --serial PATH       Serial device path (e.g., /dev/ttyACM0)
-  --no-trace          Disable traceroute collection
-  --retries N         Number of retries per node on timeout
-
-## Examples
-
-### Basic single run
 ```bash
-python meshtastic_telemetry_logger.py --nodes !exampleA !exampleB --once
+python3 meshtastic_telemetry_logger.py --all-nodes --once
 ```
 
-### Continuous monitoring with custom interval
+### Force Chart Regeneration
+
 ```bash
-python meshtastic_telemetry_logger.py --nodes !exampleA !exampleB --interval 300
+python3 meshtastic_telemetry_logger.py --nodes !exampleA --once --regenerate-charts
 ```
 
-### Using serial connection
-```bash
-python meshtastic_telemetry_logger.py --nodes !exampleA !exampleB --serial /dev/ttyACM0 --once
-```
+### Run Plot Generation with Chart Regeneration
 
-### Disable automatic plotting
 ```bash
-python meshtastic_telemetry_logger.py --nodes !exampleA !exampleB --once --no-plot
+python3 plot_meshtastic.py --telemetry telemetry.csv --traceroute traceroute.csv --regenerate-charts
 ```
-
-### Custom output files
-```bash
-python meshtastic_telemetry_logger.py --nodes !exampleA !exampleB --output my_telemetry.csv --trace-output my_traceroute.csv --once
-```
-
-### Generate plots from existing data
-```bash
-python plot_meshtastic.py --telemetry telemetry.csv --traceroute traceroute.csv --outdir plots
-```
-
-### Merge multiple CSV files for plotting
-```bash
-python plot_meshtastic.py --telemetry telemetry_*.csv --traceroute traceroute_*.csv --outdir plots
-```
-
-Notes
-- The script uses the `meshtastic` CLI (Python package) to perform requests; ensure the CLI is available in your environment.
-- The `requirements.txt` lists plotting/data packages (pandas, numpy, matplotlib)."
