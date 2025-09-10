@@ -1,0 +1,24 @@
+Diagnostics (merged)
+====================
+Generated: 2025-09-10 09:21:40
+
+Sources telemetry:
+  - sample_output/telemetry.csv
+Sources traceroute:
+  - sample_output/traceroute.csv
+
+TELEMETRY:
+  rows (merged, unique): 3
+  nodes: !12345678, !87654321
+  time span: 2025-01-01 10:00:00 UTC .. 2025-01-01 10:10:00 UTC
+  NaNs battery_pct: 0
+  NaNs voltage_v: 0
+  NaNs channel_util_pct: 0
+  NaNs air_tx_pct: 0
+  NaNs uptime_s: 0
+
+TRACEROUTE:
+  rows (merged, unique): 2
+  dests: !12345678, !87654321
+  directions: forward
+  time span: 2025-01-01 10:00:00 UTC .. 2025-01-01 10:05:00 UTC
