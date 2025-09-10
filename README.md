@@ -2,6 +2,22 @@
 
 A toolkit for collecting, logging, and visualizing telemetry and traceroute data from Meshtastic nodes.
 
+## ⚡ New Refactored Version Available!
+
+This repository has been refactored for better maintainability and modularity. See [`REFACTORING_GUIDE.md`](REFACTORING_GUIDE.md) for migration details.
+
+**Quick Start with Refactored Version:**
+```bash
+# Auto-discover and monitor all nodes
+python3 meshtastic_logger_refactored.py --all-nodes --once --plot
+
+# Monitor specific nodes  
+python3 meshtastic_logger_refactored.py --nodes !abc123 !def456 --once --plot
+
+# Discover nodes only
+python3 discover_nodes_refactored.py --detailed
+```
+
 ## Features
 
 - Collects telemetry (battery, voltage, channel utilization, air time, uptime) from Meshtastic nodes
@@ -9,6 +25,24 @@ A toolkit for collecting, logging, and visualizing telemetry and traceroute data
 - Logs data to CSV files with timestamps
 - Generates interactive HTML dashboards with visualizations
 - Creates per-node dedicated pages with detailed metrics and traceroute information
+- **NEW**: Modular architecture with core utility modules
+- **NEW**: Comprehensive unit testing
+- **NEW**: Configuration management system
+
+## Architecture
+
+### Core Modules (`core/`)
+- **`cli_utils.py`**: Safe CLI command execution and validation
+- **`csv_utils.py`**: CSV file handling and data logging utilities  
+- **`node_discovery.py`**: Network node discovery and detailed node information
+- **`telemetry.py`**: Telemetry data collection from Meshtastic nodes
+- **`traceroute.py`**: Network traceroute functionality and topology analysis
+- **`config.py`**: Configuration management system
+
+### Main Scripts
+- **`meshtastic_logger_refactored.py`**: Clean, class-based main logger (recommended)
+- **`discover_nodes_refactored.py`**: Simplified node discovery script
+- **`meshtastic_telemetry_logger.py`**: Original monolithic implementation (legacy)
 
 ## Files
 
@@ -39,7 +73,31 @@ A toolkit for collecting, logging, and visualizing telemetry and traceroute data
 
 ## Usage Examples
 
-### Discover All Nodes Automatically
+### Quick Start (Refactored Version)
+
+**Discover All Nodes Automatically:**
+```bash
+python3 meshtastic_logger_refactored.py --all-nodes --once --plot
+```
+
+**Monitor Specific Nodes:**
+```bash
+python3 meshtastic_logger_refactored.py --nodes !abc123 !def456 --once --plot
+```
+
+**Continuous Monitoring:**
+```bash
+python3 meshtastic_logger_refactored.py --all-nodes --interval 300 --plot
+```
+
+**Node Discovery Only:**
+```bash
+python3 discover_nodes_refactored.py --detailed
+```
+
+### Legacy Usage (Original Files)
+
+**Discover All Nodes Automatically:**
 
 ```bash
 python3 meshtastic_telemetry_logger.py --all-nodes --once
