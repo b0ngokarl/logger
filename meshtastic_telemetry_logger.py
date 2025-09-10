@@ -10,14 +10,18 @@ Meshtastic telemetry & traceroute logger
 import argparse
 import os
 from pathlib import Path
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple, Dict, Any
 import signal
 import sys
 import time
 import subprocess
 import re
 import json
+import importlib.util
 import pandas as pd
+
+# Add the parent directory to the Python path so we can import the core module
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # ---- Telemetry CLI parsing ----
 RE_BATT = re.compile(r"Battery level:\s*([0-9.]+)%")

@@ -526,8 +526,26 @@ def format_value(value: Any, value_type: str = "text", empty_text: str = "N/A") 
     
     # Format based on type
     try:
-        if value_type == "percent":
-            return f"{float(value):.1f}%"
+        if value_type == "channel_util_percent" or value_type == "air_tx_percent":
+            # For channel utilization and air tx, high is concerning (red)
+            pct = float(value)
+            if pct > 75:
+                color = "#ff4d4d"  # red
+            elif pct > 50:
+                color = "#ffcc00"  # amber
+            else:
+                color = "#4CAF50"  # green
+            return f'<span style="color:{color};font-weight:bold;">{pct:.1f}%</span>'
+        elif value_type == "percent":
+            # For battery and other percentages, low is concerning (red)
+            pct = float(value)
+            if pct < 25:
+                color = "#ff4d4d"  # red
+            elif pct < 50:
+                color = "#ffcc00"  # amber
+            else:
+                color = "#4CAF50"  # green
+            return f'<span style="color:{color};font-weight:bold;">{pct:.1f}%</span>'
         elif value_type == "voltage":
             return f"{float(value):.2f} V"
         elif value_type == "time":

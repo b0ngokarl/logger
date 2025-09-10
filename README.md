@@ -28,6 +28,11 @@ python3 discover_nodes_refactored.py --detailed
 - **NEW**: Modular architecture with core utility modules
 - **NEW**: Comprehensive unit testing
 - **NEW**: Configuration management system
+- **NEW**: Enhanced node page visualization with color-coded metrics
+- **NEW**: Visual battery progress bars with color indicators
+- **NEW**: Fixed duplicate Node ID display in node pages
+- **NEW**: Pipeline script for end-to-end processing
+- See [ENHANCEMENT_SUMMARY.md](ENHANCEMENT_SUMMARY.md) for details on all enhancements
 
 ## Architecture
 
@@ -112,4 +117,38 @@ python3 meshtastic_telemetry_logger.py --nodes !exampleA --once --regenerate-cha
 
 ```bash
 python3 plot_meshtastic.py --telemetry telemetry.csv --traceroute traceroute.csv --regenerate-charts
+```
+
+### Enhanced Node Page Utilities
+
+**Fix All Node Page Issues at Once:**
+```bash
+python3 node_page_updater.py --fix-all
+```
+
+**Fix Only Duplicate Node ID Issue:**
+```bash
+python3 node_page_updater.py --fix-duplicate-node-id
+```
+
+**Enhance Metric Visualizations:**
+```bash
+python3 enhance_node_visualizations.py plots
+```
+
+**Add Battery Metrics to Example Nodes:**
+```bash
+python3 add_battery_to_examples.py
+```
+
+### Run Complete Pipeline
+
+**Generate Plots and Apply All Enhancements:**
+```bash
+python3 pipeline.py
+```
+
+**Apply Enhancements Only (Skip Plot Generation):**
+```bash
+python3 pipeline.py --skip-plot
 ```

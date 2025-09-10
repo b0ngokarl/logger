@@ -45,6 +45,20 @@ A Python toolkit for collecting, logging, and visualizing telemetry and tracerou
   ```bash
   python3 plot_meshtastic.py --telemetry telemetry.csv --traceroute traceroute.csv --outdir plots
   ```
+- **Node page enhancement**:
+  ```bash
+  # Fix all issues at once
+  python3 node_page_updater.py --fix-all
+  
+  # Fix only duplicate Node ID issue
+  python3 node_page_updater.py --fix-duplicate-node-id
+  
+  # Enhance metrics visualization
+  python3 node_page_updater.py --enhance-metrics
+  
+  # Run complete pipeline
+  python3 pipeline.py --skip-plot
+  ```
 
 ### Expected Hardware Requirements
 - **WITHOUT Meshtastic Hardware**: Scripts run but show "No nodes discovered" - this is normal for testing
@@ -99,6 +113,10 @@ A Python toolkit for collecting, logging, and visualizing telemetry and tracerou
 - **`meshtastic_logger_refactored.py`**: RECOMMENDED main logging script (clean, modular)
 - **`discover_nodes_refactored.py`**: RECOMMENDED node discovery script
 - **`plot_meshtastic.py`**: Plot and dashboard generation
+- **`node_page_updater.py`**: Script to fix and enhance node pages
+- **`enhance_node_visualizations.py`**: Enhances metrics with colors and progress bars
+- **`add_battery_to_examples.py`**: Adds realistic metrics to example nodes
+- **`pipeline.py`**: End-to-end script that runs all necessary steps
 - **`meshtastic_telemetry_logger.py`**: LEGACY monolithic script (avoid for new work)
 
 ### File Dependencies
@@ -127,8 +145,12 @@ A Python toolkit for collecting, logging, and visualizing telemetry and tracerou
 │   ├── telemetry_example.csv        # Sample telemetry data
 │   └── traceroute_example.csv       # Sample traceroute data
 ├── meshtastic_logger_refactored.py  # Main script (RECOMMENDED)
-├── discover_nodes_refactored.py     # Discovery script (RECOMMENDED)  
+├── discover_nodes_refactored.py     # Discovery script (RECOMMENDED)
 ├── plot_meshtastic.py               # Plotting and HTML generation
+├── node_page_updater.py             # Node page enhancement script
+├── enhance_node_visualizations.py   # Visualization enhancement script
+├── add_battery_to_examples.py       # Example node enhancement script
+├── pipeline.py                      # End-to-end pipeline script
 └── meshtastic_telemetry_logger.py   # Legacy script (AVOID)
 ```
 
@@ -162,6 +184,9 @@ $ python3 meshtastic_logger_refactored.py --all-nodes --once
 - **Import errors**: Run `pip install -r requirements.txt` first
 - **Missing output files**: Check that output directory exists and has write permissions
 - **HTML dashboard not loading**: Verify PNG files were generated alongside HTML files
+- **Duplicate Node ID in pages**: Run `python3 node_page_updater.py --fix-duplicate-node-id` to fix
+- **Missing battery visualization**: Run `python3 add_battery_to_examples.py` to add battery metrics to example nodes
+- **Plain metrics without colors**: Run `python3 enhance_node_visualizations.py plots` to enhance with colors
 
 ### Always Test With Sample Data First
 - Use `examples/telemetry_example.csv` and `examples/traceroute_example.csv` for development

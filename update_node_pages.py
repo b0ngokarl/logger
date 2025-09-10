@@ -151,7 +151,7 @@ def _build_node_info_section(node_id, telemetry_data):
     # Define all possible node info fields
     info_fields = [
         ('user', 'Name/User'),
-        ('id', 'Node ID'), 
+        # Removed duplicate 'Node ID' field here - we'll handle it manually
         ('aka', 'Also Known As'),
         ('hardware', 'Hardware'),
         ('firmware', 'Firmware'),
@@ -182,8 +182,9 @@ def _build_node_info_section(node_id, telemetry_data):
             
             # Special handling for different value types
             try:
-                if field_key == 'id' and value.startswith('!'):
-                    value = value.strip('!')
+                # Skip 'id' field since we handle it manually at the top to prevent duplication
+                if field_key == 'id':
+                    continue
                 elif field_key in ['latitude', 'longitude'] and 'latitude' in telemetry_data and 'longitude' in telemetry_data:
                     # For location, create a combined row with map link
                     if field_key == 'latitude':  # Only process once for lat/lon pair
@@ -279,8 +280,8 @@ def _build_telemetry_section(telemetry_data):
     metrics = [
         ('voltage_v', '⚡ Voltage', 'voltage'),
         ('uptime_s', '⏱️ Uptime', 'time'),
-        ('channel_util_pct', '📡 Channel Util', 'percent'),
-        ('air_tx_pct', '📤 Air Tx', 'percent')
+        ('channel_util_pct', '📡 Channel Util', 'channel_util_percent'),  # Changed to specific type for channel util
+        ('air_tx_pct', '📤 Air Tx', 'air_tx_percent')  # Changed to specific type for air tx
     ]
     
     for field_key, field_label, value_type in metrics:

@@ -1,6 +1,6 @@
 # Enhanced Meshtastic Telemetry Features
 
-This document describes the new enhanced telemetry collection and automation features that address user requests for comprehensive telemetry data and simplified automation.
+This document describes the new enhanced telemetry collection, automation features, and node page visualization improvements that address user requests for comprehensive telemetry data, simplified automation, and better visual representation.
 
 ## Enhanced Telemetry Collection
 
@@ -219,3 +219,59 @@ timestamp,node,battery_pct,voltage_v,channel_util_pct,air_tx_pct,uptime_s,temper
 - Check `--completion-timeout` setting
 - Use `--stop-when-all-complete` for finite runs
 - Monitor via `run_stats.json` for progress tracking
+
+## Node Page Visualization Enhancements
+
+The node pages have been enhanced with improved visualizations and fixes:
+
+### Fixed Duplicate Node ID Display
+
+- Removed redundant Node ID from node information tables
+- Node ID now appears only in the page header and badge
+- Implementation: `node_page_updater.py --fix-duplicate-node-id`
+
+### Enhanced Battery Visualization
+
+- Added visual battery progress bars with color coding:
+  - Green (>75%): Good battery level
+  - Yellow (40-75%): Medium battery level
+  - Orange (20-40%): Low battery level
+  - Red (<20%): Critical battery level
+- Implementation: `enhance_node_visualizations.py`
+
+### Color-Coded Metrics
+
+- Added color indicators to important metrics:
+  - Channel Utilization: Green (<10%), Yellow (<25%), Orange (<50%), Red (>50%)
+  - Air TX: Green (<5%), Yellow (<15%), Orange (<30%), Red (>30%)
+- Implementation: `enhance_node_visualizations.py`
+
+### Example Node Enhancements
+
+- Added realistic battery metrics to example nodes
+- Different battery levels for demonstration: 95%, 75%, 35%, 15%
+- Implementation: `add_battery_to_examples.py`
+
+### Pipeline Integration
+
+- Updated `pipeline.py` to include all enhancement steps
+- Single command to run all fixes: `python3 pipeline.py --skip-plot`
+
+### Usage Examples
+
+```bash
+# Fix duplicate Node ID display
+python3 node_page_updater.py --fix-duplicate-node-id
+
+# Enhance metrics visualization
+python3 enhance_node_visualizations.py plots
+
+# Add battery metrics to example nodes
+python3 add_battery_to_examples.py
+
+# Run complete pipeline (skip plot generation)
+python3 pipeline.py --skip-plot
+
+# Run validation tests
+python3 validate_enhancements.py
+```

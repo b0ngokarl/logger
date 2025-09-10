@@ -1,3 +1,5 @@
-timestamp,node,battery_pct,voltage_v,channel_util_pct,air_tx_pct,uptime_s
-2025-09-09 10:00:00+00:00,!exampleB,85,3.78,0.5,0.2,3600
-2025-09-09 11:00:00+00:00,!exampleA,92,3.85,0.3,0.1,7200
+timestamp,node,battery_pct,voltage_v,channel_util_pct,air_tx_pct,uptime_s,user,hardware,firmware,latitude,longitude,altitude,signal_strength,hops,key,aka
+2025-09-09 10:00:00+00:00,!exampleB,85,3.78,0.5,0.2,3600,John Smith,T-Beam v1.1,2.1.22,48.1375° N,11.5750° E,520m,-72,2,Encryption-Default,Waypoint Station
+2025-09-09 11:00:00+00:00,!exampleA,92,3.85,0.3,0.1,7200,Alice Johnson,TTGO T-Beam,2.1.22,40.7128° N,74.0060° W,10m,-65,1,Default-Key,Base Station Alpha
+2025-09-09 12:00:00+00:00,!exampleC,75,3.65,2.1,1.8,14400,Robert Davis,Heltec v2,2.1.20,51.5074° N,0.1278° W,15m,-78,3,Encryption-Default,Field Node 1
+2025-09-09 13:00:00+00:00,!exampleD,64,3.55,4.5,3.2,21600,Sarah Wilson,LilyGO T-Echo,2.1.21,34.0522° N,118.2437° W,95m,-82,4,Encryption-Default,Mobile Unit Delta

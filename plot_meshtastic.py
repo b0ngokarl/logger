@@ -61,24 +61,39 @@ def parse_args():
     ap.add_argument("--traceroute", nargs="+", required=True, help="One or more traceroute CSVs")
     ap.add_argument("--outdir", default="plots", help="Output directory for PNGs and HTML")
     ap.add_argument("--regenerate-charts", action="store_true", help="Force regeneration of all charts")
+    ap.add_argument("--regenerate-specific-nodes", nargs="+", help="Force regeneration of charts for specific node IDs")
     ap.add_argument("--preserve-history", action="store_true", help="Create timestamped directory and preserve history")
     return ap.parse_args()
 
 def read_merge_telemetry(paths):
-    need = ["timestamp","node","battery_pct","voltage_v","channel_util_pct","air_tx_pct","uptime_s",
-           "temperature_c","humidity_pct","pressure_hpa","iaq","lux","current_ma",
-           "ch1_voltage_v","ch1_current_ma","ch2_voltage_v","ch2_current_ma",
-           "ch3_voltage_v","ch3_current_ma","ch4_voltage_v","ch4_current_ma"]
+    # Required columns - these MUST be present
+    required = ["timestamp", "node"]
+    
+    # Optional columns - use if available, otherwise set to NaN
+    optional = ["battery_pct", "voltage_v", "channel_util_pct", "air_tx_pct", "uptime_s",
+               "temperature_c", "humidity_pct", "pressure_hpa", "iaq", "lux", "current_ma",
+               "ch1_voltage_v", "ch1_current_ma", "ch2_voltage_v", "ch2_current_ma",
+               "ch3_voltage_v", "ch3_current_ma", "ch4_voltage_v", "ch4_current_ma"]
+    
     frames = []
     for p in paths:
         df = pd.read_csv(p)
-        missing = [c for c in need if c not in df.columns]
-        if missing:
-            print(f"[WARN] Skip {p}: missing columns {missing}")
+        # Check if required columns are present
+        missing_required = [c for c in required if c not in df.columns]
+        if missing_required:
+            print(f"[ERROR] Skip {p}: missing required columns {missing_required}")
             continue
-        frames.append(df[need].copy())
+            
+        # For optional columns, add them with NaN if missing
+        for col in optional:
+            if col not in df.columns:
+                df[col] = float('nan')
+                
+        # Select all required + optional columns that are available
+        frames.append(df[required + [c for c in optional if c in df.columns]].copy())
+        
     if not frames:
-        return pd.DataFrame(columns=need)
+        return pd.DataFrame(columns=required + optional)
 
     df = pd.concat(frames, ignore_index=True)
     df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce", utc=True)
@@ -1112,7 +1127,27 @@ def main():
     diagnostics(tele, trace, outdir, args.telemetry, args.traceroute)
 
     if not tele.empty:
-        plot_per_node_dashboards(tele, outdir, force_regenerate=args.regenerate_charts)
+        # Handle regeneration of specific nodes if specified
+        if args.regenerate_specific_nodes:
+            # Strip '!' prefix if present for consistency
+            specific_nodes = [node.lstrip('!') for node in args.regenerate_specific_nodes]
+            log_info(f"Regenerating charts for specific nodes: {', '.join(specific_nodes)}")
+            # Filter telemetry data to only include specified nodes
+            nodes_with_prefix = [f"!{node}" if not node.startswith('!') else node for node in specific_nodes]
+            nodes_without_prefix = [node.lstrip('!') for node in specific_nodes]
+            # Match both with and without ! prefix for flexibility
+            tele_filtered = tele[tele["node"].apply(
+                lambda x: x.lstrip('!') in nodes_without_prefix or x in nodes_with_prefix)]
+            if tele_filtered.empty:
+                log_warn(f"No telemetry data found for specified nodes: {', '.join(specific_nodes)}")
+                # Fall back to using all data
+                plot_per_node_dashboards(tele, outdir, force_regenerate=args.regenerate_charts)
+            else:
+                log_info(f"Found telemetry data for {len(tele_filtered['node'].unique())} specified nodes")
+                plot_per_node_dashboards(tele_filtered, outdir, force_regenerate=True)
+        else:
+            # Standard behavior when no specific nodes are provided
+            plot_per_node_dashboards(tele, outdir, force_regenerate=args.regenerate_charts)
     else:
         log_warn("No telemetry data after merge.")
 
