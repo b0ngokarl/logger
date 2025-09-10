@@ -55,7 +55,13 @@ def setup_telemetry_csv(csv_path: Path) -> None:
     """
     header = [
         "timestamp", "node", "battery_pct", "voltage_v", 
-        "channel_util_pct", "air_tx_pct", "uptime_s"
+        "channel_util_pct", "air_tx_pct", "uptime_s",
+        # Environment sensors
+        "temperature_c", "humidity_pct", "pressure_hpa", "iaq", "lux",
+        # Power monitoring
+        "current_ma", 
+        "ch1_voltage_v", "ch1_current_ma", "ch2_voltage_v", "ch2_current_ma",
+        "ch3_voltage_v", "ch3_current_ma", "ch4_voltage_v", "ch4_current_ma"
     ]
     ensure_header(csv_path, header)
 

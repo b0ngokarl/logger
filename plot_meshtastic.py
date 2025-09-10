@@ -65,7 +65,10 @@ def parse_args():
     return ap.parse_args()
 
 def read_merge_telemetry(paths):
-    need = ["timestamp","node","battery_pct","voltage_v","channel_util_pct","air_tx_pct","uptime_s"]
+    need = ["timestamp","node","battery_pct","voltage_v","channel_util_pct","air_tx_pct","uptime_s",
+           "temperature_c","humidity_pct","pressure_hpa","iaq","lux","current_ma",
+           "ch1_voltage_v","ch1_current_ma","ch2_voltage_v","ch2_current_ma",
+           "ch3_voltage_v","ch3_current_ma","ch4_voltage_v","ch4_current_ma"]
     frames = []
     for p in paths:
         df = pd.read_csv(p)
@@ -79,7 +82,10 @@ def read_merge_telemetry(paths):
 
     df = pd.concat(frames, ignore_index=True)
     df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce", utc=True)
-    for col in ["battery_pct","voltage_v","channel_util_pct","air_tx_pct","uptime_s"]:
+    for col in ["battery_pct","voltage_v","channel_util_pct","air_tx_pct","uptime_s",
+               "temperature_c","humidity_pct","pressure_hpa","iaq","lux","current_ma",
+               "ch1_voltage_v","ch1_current_ma","ch2_voltage_v","ch2_current_ma",
+               "ch3_voltage_v","ch3_current_ma","ch4_voltage_v","ch4_current_ma"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
     df = df.dropna(subset=["timestamp"])
     # Drop duplicates (identical timestamp+node)
@@ -411,11 +417,28 @@ def _fallback_diagnostics_html(df_tele, df_trace, sources_tele, sources_trace, e
 
 def plot_per_node_dashboards(df: pd.DataFrame, outdir: Path, force_regenerate=False):
     metrics = [
+        # Basic device metrics
         ("battery_pct", "Battery (%)", "battery"),
         ("voltage_v", "Voltage (V)", "voltage"),
         ("channel_util_pct", "Channel Utilization (%)", "channel_util"),
         ("air_tx_pct", "Air TX Utilization (%)", "air_tx"),
         ("uptime_s", "Uptime (hours)", "uptime_hours"),
+        # Environment sensors
+        ("temperature_c", "Temperature (°C)", "temperature"),
+        ("humidity_pct", "Humidity (%)", "humidity"),
+        ("pressure_hpa", "Pressure (hPa)", "pressure"),
+        ("iaq", "Air Quality Index", "iaq"),
+        ("lux", "Light (Lux)", "lux"),
+        # Power monitoring  
+        ("current_ma", "Current (mA)", "current"),
+        ("ch1_voltage_v", "Ch1 Voltage (V)", "ch1_voltage"),
+        ("ch1_current_ma", "Ch1 Current (mA)", "ch1_current"),
+        ("ch2_voltage_v", "Ch2 Voltage (V)", "ch2_voltage"),
+        ("ch2_current_ma", "Ch2 Current (mA)", "ch2_current"),
+        ("ch3_voltage_v", "Ch3 Voltage (V)", "ch3_voltage"),
+        ("ch3_current_ma", "Ch3 Current (mA)", "ch3_current"),
+        ("ch4_voltage_v", "Ch4 Voltage (V)", "ch4_voltage"),
+        ("ch4_current_ma", "Ch4 Current (mA)", "ch4_current"),
     ]
     nodes = sorted(df["node"].dropna().unique())
     dashboards = {}
