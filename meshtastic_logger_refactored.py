@@ -137,11 +137,28 @@ class MeshtasticLogger:
         for node_id, tele in telemetry_data.items():
             append_row(self.tele_csv, [
                 cycle_ts, node_id,
+                # Basic device metrics
                 tele.get("battery_pct", ""),
                 tele.get("voltage_v", ""),
                 tele.get("channel_util_pct", ""),
                 tele.get("air_tx_pct", ""),
-                tele.get("uptime_s", "")
+                tele.get("uptime_s", ""),
+                # Environment sensors
+                tele.get("temperature_c", ""),
+                tele.get("humidity_pct", ""),
+                tele.get("pressure_hpa", ""),
+                tele.get("iaq", ""),
+                tele.get("lux", ""),
+                # Power monitoring
+                tele.get("current_ma", ""),
+                tele.get("ch1_voltage_v", ""),
+                tele.get("ch1_current_ma", ""),
+                tele.get("ch2_voltage_v", ""),
+                tele.get("ch2_current_ma", ""),
+                tele.get("ch3_voltage_v", ""),
+                tele.get("ch3_current_ma", ""),
+                tele.get("ch4_voltage_v", ""),
+                tele.get("ch4_current_ma", "")
             ])
             
             # Update node data

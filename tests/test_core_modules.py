@@ -128,21 +128,39 @@ class TestTelemetry(unittest.TestCase):
         with patch('core.telemetry.run_cli') as mock_run_cli:
             mock_run_cli.return_value = (True, "Battery level: 85%\nVoltage: 3.2V")
             
-            # Test hex format node ID
+            # Test hex format node ID  
             _collect_direct_telemetry("!ba4bf9d0")
             
-            # Verify the command format
-            called_command = mock_run_cli.call_args[0][0]
-            expected_command = ["meshtastic", "--request-telemetry", "--dest", "!ba4bf9d0"]
-            self.assertEqual(called_command, expected_command)
+            # Verify the command format (should try multiple sensor types)
+            # Check that at least one call was made with the basic telemetry request
+            calls = [call[0][0] for call in mock_run_cli.call_args_list]
+            
+            # Should have calls for different sensor types, including the basic one
+            basic_command = ["meshtastic", "--request-telemetry", "--dest", "!ba4bf9d0"]
+            sensor_command_pattern = ["meshtastic", "--request-telemetry"]  # + sensor type + --dest + node
+            
+            # Check that we made multiple telemetry requests (enhanced collection)
+            self.assertTrue(len(calls) > 1, "Should make multiple telemetry requests for different sensor types")
+            
+            # Check that the basic command format is used somewhere in the calls
+            basic_found = any(call == basic_command for call in calls)
+            self.assertTrue(basic_found, f"Should include basic telemetry command, got calls: {calls}")
             
             # Test decimal format node ID
+            # Clear previous call history
+            mock_run_cli.reset_mock()
             _collect_direct_telemetry("1828779180")
             
-            # Verify the command format for decimal
-            called_command = mock_run_cli.call_args[0][0]
-            expected_command = ["meshtastic", "--request-telemetry", "--dest", "1828779180"]
-            self.assertEqual(called_command, expected_command)
+            # Verify the command format for decimal (should also make multiple calls)
+            calls = [call[0][0] for call in mock_run_cli.call_args_list]
+            
+            # Check that we made multiple telemetry requests for this node too
+            self.assertTrue(len(calls) > 1, "Should make multiple telemetry requests for decimal node ID too")
+            
+            # Check that the basic decimal command format is used somewhere
+            basic_decimal_command = ["meshtastic", "--request-telemetry", "--dest", "1828779180"]
+            basic_decimal_found = any(call == basic_decimal_command for call in calls)
+            self.assertTrue(basic_decimal_found, f"Should include basic telemetry command for decimal ID, got calls: {calls}")
 
 
 class TestNodeDiscovery(unittest.TestCase):
