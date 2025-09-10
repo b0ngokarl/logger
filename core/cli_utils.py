@@ -43,6 +43,7 @@ def run_cli(cmd: List[str], timeout: int = 30) -> Tuple[bool, str]:
 def validate_node_id(node_id: str) -> bool:
     """
     Validate a Meshtastic node ID format.
+    Supports both hex format (like !ba4bf9d0) and decimal format (like 1828779180)
     
     Args:
         node_id: Node ID to validate
@@ -56,7 +57,7 @@ def validate_node_id(node_id: str) -> bool:
     # Remove leading ! if present for validation
     clean_id = node_id.lstrip('!')
     
-    # Should be alphanumeric characters only
+    # Should be alphanumeric characters (covers both hex and decimal formats)
     return bool(re.match(r"^[0-9a-zA-Z]+$", clean_id))
 
 
