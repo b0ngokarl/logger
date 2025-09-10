@@ -191,9 +191,12 @@ class MeshtasticLogger:
             if self.args.regenerate_charts:
                 plot_cmd.append("--regenerate-charts")
             
-            print("[INFO] Running plotting script...")
+            if self.args.preserve_history:
+                plot_cmd.append("--preserve-history")
+            
+            print("[INFO] Running enhanced plotting script...")
             subprocess.run(plot_cmd, check=True)
-            print("[INFO] Plotting completed successfully")
+            print("[INFO] Enhanced plotting completed successfully")
             
         except subprocess.CalledProcessError as e:
             print(f"[ERROR] Plotting failed: {e}", file=sys.stderr)
@@ -291,6 +294,7 @@ def parse_args():
     parser.add_argument("--no-trace", action="store_true", help="Disable traceroute collection")
     parser.add_argument("--plot", action="store_true", help="Generate plots after data collection")
     parser.add_argument("--regenerate-charts", action="store_true", help="Force regeneration of all charts")
+    parser.add_argument("--preserve-history", action="store_true", help="Create timestamped subdirectory to preserve plot history")
     
     return parser.parse_args()
 
