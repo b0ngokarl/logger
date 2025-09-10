@@ -46,12 +46,11 @@ python3 discover_nodes_refactored.py --detailed
 
 ## Files
 
-- `meshtastic_telemetry_logger.py`: Main script for collecting and logging data
-- `discover_all_nodes.py`: Script for automatically discovering all nodes on the network
+- `meshtastic_telemetry_logger.py`: Legacy main script for collecting and logging data
+- `meshtastic_logger_refactored.py`: **Recommended** refactored main logger with modular architecture
+- `discover_nodes_refactored.py`: Node discovery script using core modules  
 - `node_page_updater.py`: Class for updating node-specific pages
 - `update_node_pages.py`: Helper script for generating per-node HTML dashboards
-- `test_node_pages.py`: Test utility for the node pages generator
-- `test_all_nodes.py`: Example script demonstrating all-nodes discovery and chart regeneration
 - `plots/`: Directory containing generated visualizations and HTML dashboards
   - `index.html`: Main dashboard entry point
   - `dashboards.html`: Grid of all node dashboards with key metrics
