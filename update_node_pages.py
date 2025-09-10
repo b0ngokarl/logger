@@ -263,19 +263,21 @@ def update_node_pages(node_id, telemetry_data=None, traceroute_data=None, output
             </tr>
             """
         
-        # Add name if available
-        if 'id' in telemetry_data and telemetry_data['id'] and telemetry_data['id'] != 'Unknown' and telemetry_data['id'] != 'N/A':
-            html_content += f"""
-            <tr>
-                <td style="padding:8px; border-bottom:1px solid #ddd;"><strong>Name</strong></td>
-                <td style="padding:8px; border-bottom:1px solid #ddd;">{telemetry_data.get('id')}</td>
-            </tr>
-            """
-        elif 'user' in telemetry_data and telemetry_data['user'] and telemetry_data['user'] != 'Unknown' and telemetry_data['user'] != 'N/A':
+        # Add name if available - prioritize 'user' field over 'id' field
+        if 'user' in telemetry_data and telemetry_data['user'] and telemetry_data['user'] != 'Unknown' and telemetry_data['user'] != 'N/A':
             html_content += f"""
             <tr>
                 <td style="padding:8px; border-bottom:1px solid #ddd;"><strong>Name</strong></td>
                 <td style="padding:8px; border-bottom:1px solid #ddd;">{telemetry_data.get('user')}</td>
+            </tr>
+            """
+        elif 'id' in telemetry_data and telemetry_data['id'] and telemetry_data['id'] != 'Unknown' and telemetry_data['id'] != 'N/A':
+            # Display the ID without the ! prefix for cleaner display
+            clean_id = telemetry_data['id'].strip('!') if telemetry_data['id'].startswith('!') else telemetry_data['id']
+            html_content += f"""
+            <tr>
+                <td style="padding:8px; border-bottom:1px solid #ddd;"><strong>ID</strong></td>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">{clean_id}</td>
             </tr>
             """
         

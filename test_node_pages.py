@@ -15,17 +15,30 @@ def main():
     plots_dir = Path("plots")
     plots_dir.mkdir(exist_ok=True)
     
+    # Set verbose mode for debugging
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+    
     # Process each node
     for node_id in node_ids:
         print(f"Updating page for {node_id}...")
         
-        # Sample telemetry data
+        # Sample telemetry data with more fields for better testing
         telemetry = {
             "battery_pct": 75.5,
             "voltage_v": 3.8,
             "uptime_s": 86400,  # 24 hours
             "channel_util_pct": 15.2,
-            "air_tx_pct": 5.7
+            "air_tx_pct": 5.7,
+            "user": f"Test User for {node_id}",
+            "id": node_id,
+            "aka": f"TST{node_id[-4:]}",
+            "hardware": "RAK4631",
+            "firmware": "2.2.16.8882fe0",
+            "latitude": "50.1234°",
+            "longitude": "8.5678°",
+            "last_seen": "2025-09-10 12:34:56",
+            "hops": "2"
         }
         
         # Sample traceroute data (forward and backward paths)
