@@ -29,3 +29,6 @@ test_*.csv
 
 # Temporary files from refactoring
 plots_test/
+
+# macOS system files
+.DS_Store
